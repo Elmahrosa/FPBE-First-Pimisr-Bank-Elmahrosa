@@ -1,0 +1,217 @@
+version: "3.8"
+
+services:
+  # API Gateway
+  api-gateway:
+    image: kong:3.2
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+    environment:
+      KONG_DATABASE: "off"
+      KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+      KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+      KONG_PROXY_ERROR_LOG: "/dev/stderr"
+      KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+      KONG_PROXY_LISTEN: "0.0.0.0:8000 ssl"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8443 ssl"
+      KONG_SSL_CERT: "/run/secrets/kong_ssl_cert"
+      KONG_SSL_CERT_KEY: "/run/secrets/kong_ssl_key"
+    volumes:
+      - ./api-gateway/kong.config.yml:/usr/local/kong/declarative/kong.yml:ro
+      - kong_logs:/usr/local/kong/logs
+    networks:
+      - fpbe-network
+    secrets:
+      - kong_ssl_cert
+      - kong_ssl_key
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Account Service
+  account-service:
+    build:
+      context: ./account-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fpbe_accounts
+      DB_USER: /run/secrets/postgres_user
+      DB_PASSWORD: /run/secrets/postgres_password
+      EUREKA_URI: http://service-registry:8761/eureka
+    depends_on:
+      - postgres
+      - service-registry
+    networks:
+      - fpbe-network
+    secrets:
+      - postgres_user
+      - postgres_password
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: fpbe_accounts
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fpbe-network
+    secrets:
+      - postgres_user
+      - postgres_password
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/postgres_user)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7.0-alpine
+    command: redis-server --requirepass $$(cat /run/secrets/redis_password)
+    volumes:
+      - redis_data:/data
+    networks:
+      - fpbe-network
+    secrets:
+      - redis_password
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # MongoDB for Pi Wallet
+  mongodb:
+    image: mongo:6.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME_FILE: /run/secrets/mongo_root_username
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - fpbe-network
+    secrets:
+      - mongo_root_username
+      - mongo_root_password
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  fpbe-network:
+    driver: bridge
+    internal: true
+    driver_opts:
+      encrypted: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+          ip_range: 172.28.5.0/24
+          gateway: 172.28.5.254
+
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /data/postgres
+      o: bind
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /data/redis
+      o: bind
+  mongodb_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /data/mongodb
+      o: bind
+  kong_logs:
+    driver: local
+    driver_opts:
+      type: none
+      device: /data/kong/logs
+      o: bind
+
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  mongo_root_username:
+    file: ./secrets/mongo_root_username.txt
+  mongo_root_password:
+    file: ./secrets/mongo_root_password.txt
+  kong_ssl_cert:
+    file: ./secrets/kong_ssl_cert.pem
+  kong_ssl_key:
+    file: ./secrets/kong_ssl_key.pem
+
+configs:
+  prometheus_config:
+    file: ./configs/prometheus.yml
+  grafana_config:
+    file: ./configs/grafana.ini
