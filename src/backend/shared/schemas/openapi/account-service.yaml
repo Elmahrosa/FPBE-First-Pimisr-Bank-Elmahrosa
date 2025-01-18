@@ -1,0 +1,410 @@
+openapi: 3.0.0
+
+info:
+  title: FPBE Account Service API
+  version: 1.0.0
+  description: Enhanced REST API for managing bank accounts in the FPBE mobile banking system with comprehensive monitoring and security features
+
+servers:
+  - url: https://api.fpbe.com/v1
+    description: Production server
+  - url: https://staging-api.fpbe.com/v1
+    description: Staging server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /accounts:
+    post:
+      summary: Create a new bank account
+      operationId: createAccount
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      x-ratelimit:
+        limit: 100
+        period: 3600
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /accounts/{accountId}:
+    get:
+      summary: Retrieve account details by ID
+      operationId: getAccount
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: includeHistory
+          in: query
+          description: Include account history in response
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Account details retrieved successfully
+          headers:
+            ETag:
+              description: Entity tag for cache validation
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '304':
+          description: Not modified
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /users/{userId}/accounts:
+    get:
+      summary: Retrieve all accounts for a user
+      operationId: getUserAccounts
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/PageToken'
+        - name: accountTypes
+          in: query
+          description: Filter by account types
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [SAVINGS, CHECKING, INVESTMENT]
+      responses:
+        '200':
+          description: User accounts retrieved successfully
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: Cache control directives
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAccountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /accounts/{accountId}/status:
+    put:
+      summary: Update account status
+      operationId: updateAccountStatus
+      tags:
+        - Accounts
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountStatusRequest'
+      responses:
+        '200':
+          description: Account status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      description: Unique identifier of the account
+      schema:
+        type: string
+        format: uuid
+    
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: Unique identifier of the user
+      schema:
+        type: string
+        format: uuid
+
+    PageSize:
+      name: pageSize
+      in: query
+      description: Number of items per page
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    PageToken:
+      name: pageToken
+      in: query
+      description: Token for pagination
+      required: false
+      schema:
+        type: string
+
+  schemas:
+    Account:
+      type: object
+      required:
+        - id
+        - userId
+        - accountType
+        - balance
+        - currency
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique account identifier
+        userId:
+          type: string
+          format: uuid
+          description: Associated user identifier
+        accountType:
+          type: string
+          enum: [SAVINGS, CHECKING, INVESTMENT]
+          description: Type of account
+        balance:
+          type: number
+          format: double
+          description: Current account balance
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          description: ISO 4217 currency code
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, CLOSED]
+          description: Account status
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional account metadata
+        version:
+          type: integer
+          description: Optimistic locking version
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        statusHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusHistoryEntry'
+
+    CreateAccountRequest:
+      type: object
+      required:
+        - userId
+        - accountType
+        - currency
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: User identifier for account owner
+        accountType:
+          type: string
+          enum: [SAVINGS, CHECKING, INVESTMENT]
+          description: Requested account type
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          description: ISO 4217 currency code
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional account creation metadata
+
+    UpdateAccountStatusRequest:
+      type: object
+      required:
+        - status
+        - reason
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, CLOSED]
+          description: New account status
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Reason for status change
+        comment:
+          type: string
+          maxLength: 1000
+          description: Additional comments
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional status update metadata
+
+    StatusHistoryEntry:
+      type: object
+      required:
+        - status
+        - timestamp
+        - reason
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, CLOSED]
+        timestamp:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        comment:
+          type: string
+        modifiedBy:
+          type: string
+
+    PagedAccountResponse:
+      type: object
+      required:
+        - accounts
+        - totalCount
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        nextPageToken:
+          type: string
+          description: Token for retrieving next page
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of accounts
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Time to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        requestId:
+          type: string
