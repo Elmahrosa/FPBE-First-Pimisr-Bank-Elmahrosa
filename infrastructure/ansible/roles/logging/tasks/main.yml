@@ -1,0 +1,298 @@
+---
+# Main tasks file for ELK stack deployment with enhanced security and monitoring
+# Version: 8.7.0
+
+- name: Create logging namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: logging
+        labels:
+          name: logging
+          environment: "{{ env }}"
+  tags: ['namespace', 'setup']
+
+- name: Configure resource quotas for logging namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ResourceQuota
+      metadata:
+        name: logging-quota
+        namespace: logging
+      spec:
+        hard:
+          requests.cpu: "8"
+          requests.memory: 16Gi
+          limits.cpu: "16"
+          limits.memory: 32Gi
+  tags: ['quota', 'setup']
+
+# Elasticsearch Installation and Configuration
+- name: Deploy Elasticsearch
+  block:
+    - name: Create Elasticsearch ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: elasticsearch-config
+            namespace: logging
+          data:
+            elasticsearch.yml: |
+              cluster.name: {{ elasticsearch_config.cluster_name }}
+              node.roles: {{ elasticsearch_config.node_roles | to_yaml }}
+              bootstrap.memory_lock: {{ elasticsearch_config.bootstrap_memory_lock }}
+              network.host: {{ elasticsearch_config.network_host }}
+              xpack.security.enabled: {{ elasticsearch_config.security_enabled }}
+              xpack.monitoring.enabled: {{ elasticsearch_config.monitoring_enabled }}
+              xpack.security.transport.ssl.enabled: {{ elasticsearch_config.tls_enabled }}
+              xpack.security.audit.enabled: {{ elasticsearch_config.audit_logging }}
+
+    - name: Deploy Elasticsearch StatefulSet
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: StatefulSet
+          metadata:
+            name: elasticsearch
+            namespace: logging
+          spec:
+            serviceName: elasticsearch
+            replicas: 3
+            selector:
+              matchLabels:
+                app: elasticsearch
+            template:
+              metadata:
+                labels:
+                  app: elasticsearch
+              spec:
+                securityContext:
+                  fsGroup: 1000
+                initContainers:
+                  - name: fix-permissions
+                    image: busybox
+                    command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+                    volumeMounts:
+                      - name: data
+                        mountPath: /usr/share/elasticsearch/data
+                containers:
+                  - name: elasticsearch
+                    image: docker.elastic.co/elasticsearch/elasticsearch:{{ elk_version }}
+                    env:
+                      - name: ES_JAVA_OPTS
+                        value: "-Xms{{ elasticsearch_heap_size }} -Xmx{{ elasticsearch_heap_size }}"
+                    resources:
+                      requests:
+                        memory: "4Gi"
+                        cpu: "2"
+                      limits:
+                        memory: "8Gi"
+                        cpu: "4"
+                    ports:
+                      - containerPort: 9200
+                        name: http
+                      - containerPort: 9300
+                        name: transport
+                    volumeMounts:
+                      - name: data
+                        mountPath: /usr/share/elasticsearch/data
+                      - name: config
+                        mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+                        subPath: elasticsearch.yml
+            volumeClaimTemplates:
+              - metadata:
+                  name: data
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 100Gi
+  tags: ['elasticsearch']
+
+# Logstash Installation and Configuration
+- name: Deploy Logstash
+  block:
+    - name: Create Logstash ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: logstash-config
+            namespace: logging
+          data:
+            logstash.yml: |
+              pipeline.workers: {{ logstash_config.pipeline_workers }}
+              pipeline.batch.size: {{ logstash_config.pipeline_batch_size }}
+              pipeline.batch.delay: {{ logstash_config.pipeline_batch_delay }}
+              queue.type: {{ logstash_config.queue_type }}
+              queue.max_bytes: {{ logstash_config.queue_max_bytes }}
+              xpack.monitoring.enabled: {{ logstash_config.monitoring_enabled }}
+              dead_letter_queue.enable: {{ logstash_config.dead_letter_queue_enabled }}
+
+    - name: Deploy Logstash Deployment
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: logstash
+            namespace: logging
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: logstash
+            template:
+              metadata:
+                labels:
+                  app: logstash
+              spec:
+                containers:
+                  - name: logstash
+                    image: docker.elastic.co/logstash/logstash:{{ elk_version }}
+                    env:
+                      - name: LS_JAVA_OPTS
+                        value: "-Xms{{ logstash_heap_size }} -Xmx{{ logstash_heap_size }}"
+                    resources:
+                      requests:
+                        memory: "2Gi"
+                        cpu: "1"
+                      limits:
+                        memory: "4Gi"
+                        cpu: "2"
+                    volumeMounts:
+                      - name: config
+                        mountPath: /usr/share/logstash/config/logstash.yml
+                        subPath: logstash.yml
+  tags: ['logstash']
+
+# Kibana Installation and Configuration
+- name: Deploy Kibana
+  block:
+    - name: Create Kibana ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: kibana-config
+            namespace: logging
+          data:
+            kibana.yml: |
+              server.name: {{ kibana_config.server_name }}
+              server.port: {{ kibana_config.server_port }}
+              elasticsearch.hosts: {{ kibana_config.elasticsearch_hosts | to_yaml }}
+              monitoring.enabled: {{ kibana_config.monitoring_enabled }}
+              xpack.security.enabled: {{ kibana_config.security_enabled }}
+              xpack.security.audit.enabled: {{ kibana_config.audit_logging_enabled }}
+
+    - name: Deploy Kibana Deployment
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: kibana
+            namespace: logging
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: kibana
+            template:
+              metadata:
+                labels:
+                  app: kibana
+              spec:
+                containers:
+                  - name: kibana
+                    image: docker.elastic.co/kibana/kibana:{{ elk_version }}
+                    ports:
+                      - containerPort: 5601
+                    resources:
+                      requests:
+                        memory: "1Gi"
+                        cpu: "500m"
+                      limits:
+                        memory: "2Gi"
+                        cpu: "1"
+                    volumeMounts:
+                      - name: config
+                        mountPath: /usr/share/kibana/config/kibana.yml
+                        subPath: kibana.yml
+  tags: ['kibana']
+
+# Configure Log Retention Policies
+- name: Configure Index Lifecycle Management
+  community.docker.docker_container_exec:
+    container: elasticsearch
+    command: >
+      curl -XPUT "localhost:9200/_ilm/policy/logs-policy" -H 'Content-Type: application/json' -d '
+      {
+        "policy": {
+          "phases": {
+            "hot": {
+              "actions": {
+                "rollover": {
+                  "max_age": "{{ retention_config.days }}d",
+                  "max_size": "50gb"
+                }
+              }
+            },
+            "delete": {
+              "min_age": "{{ retention_config.days }}d",
+              "actions": {
+                "delete": {}
+              }
+            }
+          }
+        }
+      }'
+  when: retention_config.enabled
+  tags: ['retention']
+
+# Setup Monitoring and Alerts
+- name: Configure Monitoring
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: elk-monitor
+        namespace: logging
+      spec:
+        selector:
+          matchLabels:
+            app: elasticsearch
+        endpoints:
+          - port: http
+            interval: 30s
+  tags: ['monitoring']
+
+# Verify Deployment
+- name: Verify ELK Stack Health
+  ansible.builtin.uri:
+    url: "https://{{ elasticsearch_config.network_host }}:9200/_cluster/health"
+    method: GET
+    validate_certs: no
+    return_content: yes
+  register: cluster_health
+  until: cluster_health.json.status == "green"
+  retries: 30
+  delay: 10
+  tags: ['verify']
