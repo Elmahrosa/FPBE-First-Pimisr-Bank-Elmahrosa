@@ -1,0 +1,129 @@
+# Dependencies
+node_modules/
+vendor/
+.gradle/
+
+# Build outputs
+target/
+dist/
+build/
+out/
+bin/
+*.class
+*.jar
+*.war
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.env/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment and Security
+.env
+.env.*
+*.key
+*.pem
+*.cert
+*.p12
+*.jks
+*.keystore
+secrets.yaml
+secrets.yml
+credentials.json
+
+# IDE and Editor
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+.netbeans/
+nbproject/
+.vs/
+
+# Testing and Coverage
+coverage/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+junit/
+test-output/
+
+# Infrastructure
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraformrc
+terraform.rc
+
+# Logs and Temporary
+*.log
+logs/
+tmp/
+temp/
+.temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Mobile Development
+*.apk
+*.ap_
+*.aab
+*.ipa
+*.dSYM.zip
+*.dSYM
+.gradle/
+local.properties
+*.hprof
+
+# Documentation and Reports
+docs/_build/
+site/
+.docusaurus
+.cache/
+.jekyll-cache/
+.sass-cache/
+
+# Container and Orchestration
+.docker/
+*.tar
+*.tar.gz
+kubeconfig
+.kube/
+
+# Package Management
+package-lock.json
+yarn.lock
+composer.lock
+Gemfile.lock
+poetry.lock
