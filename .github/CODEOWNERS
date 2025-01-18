@@ -1,0 +1,35 @@
+# Ensures all code changes have basic review coverage
+* @fpbe/core-maintainers
+
+# Authentication service requires security team review for compliance
+src/backend/auth-service/** @fpbe/security-team @fpbe/backend-team
+src/backend/auth-service/**/security/** @fpbe/security-team
+
+# Pi Network integration requires blockchain expertise and security review
+src/backend/pi-service/** @fpbe/blockchain-team @fpbe/backend-team @fpbe/security-team
+
+# Transaction processing requires security review for PCI DSS compliance
+src/backend/transaction-service/** @fpbe/backend-team @fpbe/security-team
+
+# Frontend application ownership
+src/web/** @fpbe/frontend-team
+src/web/**/security/** @fpbe/frontend-team @fpbe/security-team
+
+# Infrastructure requires both DevOps and security review
+infrastructure/** @fpbe/devops-team @fpbe/security-team
+infrastructure/**/security/** @fpbe/security-team
+
+# CI/CD pipeline configurations require security review
+.github/workflows/** @fpbe/devops-team @fpbe/security-team
+
+# Docker configurations require security review for container hardening
+**/Dockerfile @fpbe/devops-team @fpbe/security-team
+
+# Shared API schemas require cross-team review
+src/backend/shared/schemas/** @fpbe/backend-team @fpbe/frontend-team
+
+# Monitoring configurations require security oversight
+src/backend/shared/monitoring/** @fpbe/devops-team @fpbe/sre-team @fpbe/security-team
+
+# Security tests require dedicated security team review
+**/tests/security/** @fpbe/security-team
