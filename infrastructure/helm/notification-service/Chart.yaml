@@ -1,0 +1,41 @@
+apiVersion: v2
+type: application
+name: notification-service
+description: A Helm chart for FPBE notification service providing high-availability email, SMS and push notifications with queue-based processing and real-time updates for banking transactions, Pi mining status, and system alerts
+
+version: 1.0.0
+appVersion: 1.0.0
+
+keywords:
+  - notifications
+  - email
+  - sms
+  - push-notifications
+  - fpbe
+  - queue-processing
+  - real-time-updates
+  - high-availability
+  - banking-notifications
+  - pi-network
+
+maintainers:
+  - name: FPBE DevOps Team
+    email: devops@fpbe.com
+
+annotations:
+  category: Application
+  deploymentType: Microservice
+  securityCompliance: PCI-DSS,GDPR
+  scalingType: Horizontal
+  serviceType: Notification
+  monitoringEnabled: "true"
+  queueProcessor: redis
+
+dependencies:
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+    tags:
+      - queue-processor
+      - cache
