@@ -1,0 +1,176 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - src/**
+      - Dockerfile
+      - package.json
+      - pom.xml
+      - ios/**
+      - android/**
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly scan on Sundays
+
+env:
+  TRIVY_SEVERITY: HIGH,CRITICAL
+  SNYK_SEVERITY_THRESHOLD: high
+  CODEQL_LANGUAGES: javascript,typescript,java,python,swift,kotlin
+  COMPLIANCE_STANDARDS: PCI-DSS,GDPR,SOC2
+  SCAN_TIMEOUT: 360
+
+jobs:
+  container_scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ env.SCAN_TIMEOUT }}
+    needs: [build_backend]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build_outputs
+          path: artifacts
+
+      - name: Run Trivy Filesystem Scan
+        uses: aquasecurity/trivy-action@0.11.2
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: ${{ env.TRIVY_SEVERITY }}
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Run Trivy Container Scan
+        uses: aquasecurity/trivy-action@0.11.2
+        with:
+          image-ref: 'artifacts/backend.tar'
+          format: 'sarif'
+          output: 'trivy-container-results.sarif'
+          severity: ${{ env.TRIVY_SEVERITY }}
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Scan Results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-container-results.sarif
+          category: container-security
+
+  dependency_scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ env.SCAN_TIMEOUT }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Snyk Backend Scan
+        uses: snyk/actions@0.4.0
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --severity-threshold=${{ env.SNYK_SEVERITY_THRESHOLD }}
+          file: src/backend/package.json
+
+      - name: Snyk Mobile App Scan
+        uses: snyk/actions@0.4.0
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --severity-threshold=${{ env.SNYK_SEVERITY_THRESHOLD }}
+          file: src/web/package.json
+
+      - name: Generate Dependency Graph
+        uses: snyk/actions@0.4.0
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: --all-projects
+
+  sast_scan:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ env.SCAN_TIMEOUT }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ env.CODEQL_LANGUAGES }}
+          queries: security-extended,security-and-quality
+
+      - name: Build Application
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: sast-scan
+          output: sarif-results
+
+  mobile_security_scan:
+    name: Mobile Security Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ env.SCAN_TIMEOUT }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: MobSF Analysis
+        uses: mobile-security/mobsf-action@v1
+        env:
+          MOBSF_TOKEN: ${{ secrets.MOBSF_TOKEN }}
+        with:
+          input-path: |
+            ios/
+            android/
+          output-format: json,pdf
+          scan-type: complete
+
+      - name: Upload Mobile Scan Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: mobile-security-report
+          path: mobsf-report/
+          retention-days: 90
+
+  security_gate:
+    name: Security Quality Gate
+    needs: [container_scan, dependency_scan, sast_scan, mobile_security_scan]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Scan Results
+        run: |
+          if [[ -n $(find . -name "*-results.sarif" -exec grep -l '"level":"error"' {} \;) ]]; then
+            echo "Critical security issues found!"
+            exit 1
+          fi
+
+      - name: Block Deployment on Failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setFailed('Security scan failed - deployment blocked')
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
