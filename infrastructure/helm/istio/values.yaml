@@ -1,0 +1,178 @@
+# Istio Service Mesh Helm Values Configuration v1.18.0
+# FPBE Mobile Banking Application
+
+global:
+  istioNamespace: istio-system
+  configNamespace: fpbe
+  hub: docker.io/istio
+  tag: 1.18.0
+  imagePullPolicy: IfNotPresent
+  proxy:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    privileged: false
+    enableCoreDump: false
+    logLevel: info
+    componentLogLevel: "misc:error"
+    holdApplicationUntilProxyStarts: true
+
+istio-base:
+  enabled: true
+  validationURL: "https://auth.fpbe.com/.well-known/jwks.json"
+  certManager:
+    enabled: true
+    namespace: cert-manager
+
+istiod:
+  enabled: true
+  pilot:
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: 1000m
+        memory: 4Gi
+    traceSampling: 100
+    enableProtocolSniffing: true
+    env:
+      PILOT_ENABLE_TLS13: true
+  telemetry:
+    enabled: true
+    v2:
+      enabled: true
+      prometheus:
+        enabled: true
+        configOverride:
+          metrics:
+            - response_code
+            - response_size
+            - request_duration
+            - request_total
+            - request_bytes
+            - connection_security_policy
+  meshConfig:
+    enableTracing: true
+    defaultConfig:
+      tracing:
+        sampling: 100
+        customTags:
+          user_id:
+            header:
+              name: x-user-id
+          transaction_id:
+            header:
+              name: x-transaction-id
+          service_version:
+            literal:
+              value: "1.0"
+    accessLogFile: /dev/stdout
+    accessLogFormat: |
+      {
+        "protocol": "%PROTOCOL%",
+        "upstream_service": "%UPSTREAM_SERVICE%",
+        "response_code": "%RESPONSE_CODE%",
+        "response_flags": "%RESPONSE_FLAGS%",
+        "request_id": "%REQ(X-REQUEST-ID)%",
+        "user_id": "%REQ(X-USER-ID)%",
+        "duration": "%DURATION%",
+        "authority": "%REQ(:AUTHORITY)%",
+        "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+        "response_code_details": "%RESPONSE_CODE_DETAILS%"
+      }
+    enableAutoMtls: true
+    outboundTrafficPolicy:
+      mode: REGISTRY_ONLY
+    defaultConfig:
+      holdApplicationUntilProxyStarts: true
+      proxyMetadata:
+        ISTIO_META_DNS_CAPTURE: "true"
+        ISTIO_META_DNS_AUTO_ALLOCATE: "true"
+
+ingress:
+  enabled: true
+  service:
+    type: LoadBalancer
+    ports:
+      - name: http2
+        port: 80
+        targetPort: 8080
+      - name: https
+        port: 443
+        targetPort: 8443
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+security:
+  peerAuthentication:
+    mode: STRICT
+    mtls:
+      mode: STRICT
+  authorizationPolicies:
+    enabled: true
+    namespace: fpbe
+
+monitoring:
+  grafana:
+    enabled: true
+    accessMode: ReadOnly
+  prometheus:
+    enabled: true
+    scrapeInterval: 15s
+  jaeger:
+    enabled: true
+    memory:
+      max_traces: 100000
+  kiali:
+    enabled: true
+    dashboard:
+      viewOnlyMode: true
+
+tracing:
+  enabled: true
+  provider: jaeger
+  sampling: 100
+  customTags:
+    environment: production
+    application: fpbe
+
+sidecarInjectorWebhook:
+  enabled: true
+  enableNamespacesByDefault: false
+  rewriteAppHTTPProbe: true
+  templates:
+    sidecar: |
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1337
+        containers:
+        - name: istio-proxy
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1337
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
