@@ -1,0 +1,16 @@
+<svg 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="currentColor"
+  stroke="none"
+  role="img"
+  aria-label="Mining icon"
+  focusable="false"
+>
+  <title>Mining icon</title>
+  <desc>Icon representing cryptocurrency mining activity</desc>
+  <path d="M12 2L3 8.2v7.6L12 22l9-6.2V8.2L12 2zm6.75 12.85L12 19.65l-6.75-4.8V9.15L12 4.35l6.75 4.8v5.7zM12 6.5L7.5 9.5v6l4.5 3 4.5-3v-6L12 6.5zm3 7.65l-3 2-3-2V9.85l3-2 3 2v4.3z" />
+  <path d="M12 11.25l-1.5.85v1.8l1.5.85 1.5-.85v-1.8z" />
+</svg>
