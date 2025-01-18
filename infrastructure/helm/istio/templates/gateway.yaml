@@ -1,0 +1,70 @@
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.tls.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: fpbe-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: fpbe
+    component: gateway
+    version: {{ .Chart.Version }}
+    security-tier: frontend
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "15020"
+    monitoring.fpbe.com/enable: "true"
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  # HTTP port configuration with HTTPS redirect
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.fpbe.com"
+    - "fpbe.com"
+    tls:
+      httpsRedirect: true
+
+  # HTTPS port configuration with TLS 1.3
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "*.fpbe.com"
+    - "fpbe.com"
+    tls:
+      mode: SIMPLE
+      minProtocolVersion: TLSV1_3
+      maxProtocolVersion: TLSV1_3
+      credentialName: fpbe-tls-cert
+      cipherSuites:
+      - ECDHE-ECDSA-AES256-GCM-SHA384
+      - ECDHE-RSA-AES256-GCM-SHA384
+
+  # Metrics port for monitoring
+  - port:
+      number: 15020
+      name: metrics
+      protocol: TCP
+    hosts:
+    - "*.fpbe.com"
+    - "fpbe.com"
+
+  # Health check port
+  - port:
+      number: 15021
+      name: status-port
+      protocol: TCP
+    hosts:
+    - "*.fpbe.com"
+    - "fpbe.com"
+    tls:
+      httpsRedirect: false
+
+{{- end }}
+{{- end }}
