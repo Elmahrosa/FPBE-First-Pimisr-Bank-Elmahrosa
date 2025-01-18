@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package com.fpbe.proto.notification;
+
+import "google/protobuf/timestamp.proto";  // v3.0.0
+import "google/protobuf/empty.proto";      // v3.0.0
+import "transaction.proto";                // Internal import for transaction references
+
+option java_multiple_files = true;
+option java_package = "com.fpbe.proto.notification";
+option java_outer_classname = "NotificationProto";
+
+// NotificationType enumerates all supported notification categories
+enum NotificationType {
+    NOTIFICATION_TYPE_UNSPECIFIED = 0;    // Default unspecified value
+    TRANSACTION_ALERT = 1;                // Transaction-related notifications
+    SECURITY_ALERT = 2;                   // Security-related alerts
+    MINING_UPDATE = 3;                    // Pi mining status updates
+    MARKETING = 4;                        // Marketing communications
+    ACCOUNT_UPDATE = 5;                   // Account status changes
+    SYSTEM_ALERT = 6;                     // System-level notifications
+}
+
+// DeliveryChannel specifies supported notification delivery methods
+enum DeliveryChannel {
+    DELIVERY_CHANNEL_UNSPECIFIED = 0;     // Default unspecified value
+    PUSH_NOTIFICATION = 1;                // Mobile push notifications (FCM/APNS)
+    EMAIL = 2;                           // Email delivery
+    SMS = 3;                             // SMS delivery
+    IN_APP = 4;                          // In-app notifications
+}
+
+// NotificationPriority defines urgency levels for notifications
+enum NotificationPriority {
+    PRIORITY_UNSPECIFIED = 0;            // Default unspecified value
+    LOW = 1;                             // Low priority
+    NORMAL = 2;                          // Normal priority
+    HIGH = 3;                            // High priority
+    URGENT = 4;                          // Urgent/Critical priority
+}
+
+// Notification represents a comprehensive notification message
+message Notification {
+    string id = 1;                                    // Unique notification identifier
+    string user_id = 2;                               // Target user identifier
+    NotificationType type = 3;                        // Notification type
+    string title = 4;                                 // Notification title
+    string message = 5;                               // Notification content
+    NotificationPriority priority = 6;                // Priority level
+    DeliveryChannel delivery_channel = 7;             // Delivery method
+    string status = 8;                                // Delivery status
+    map<string, string> metadata = 9;                 // Additional metadata
+    repeated string tags = 10;                        // Categorization tags
+    google.protobuf.Timestamp created_at = 11;        // Creation timestamp
+    google.protobuf.Timestamp delivered_at = 12;      // Delivery timestamp
+    google.protobuf.Timestamp read_at = 13;           // Read timestamp
+    google.protobuf.Timestamp expires_at = 14;        // Expiration timestamp
+}
+
+// NotificationPreference defines user notification settings
+message NotificationPreference {
+    string user_id = 1;                               // User identifier
+    bool transaction_alerts = 2;                      // Enable transaction notifications
+    bool security_alerts = 3;                         // Enable security alerts
+    bool mining_updates = 4;                          // Enable mining updates
+    bool marketing_notifications = 5;                 // Enable marketing communications
+    DeliveryChannel preferred_channel = 6;           // Primary delivery channel
+    map<string, bool> channel_preferences = 7;       // Per-channel preferences
+    map<string, string> delivery_schedule = 8;       // Delivery time preferences
+    repeated string blocked_types = 9;               // Blocked notification types
+    int32 daily_limit = 10;                         // Daily notification limit
+}
+
+// SendNotificationRequest for single notification delivery
+message SendNotificationRequest {
+    string user_id = 1;                              // Target user
+    NotificationType type = 2;                       // Notification type
+    string title = 3;                                // Notification title
+    string message = 4;                              // Notification content
+    NotificationPriority priority = 5;               // Priority level
+    DeliveryChannel delivery_channel = 6;            // Delivery method
+    map<string, string> metadata = 7;                // Additional metadata
+    google.protobuf.Timestamp expires_at = 8;        // Optional expiration
+}
+
+// SendBatchNotificationsRequest for bulk notification delivery
+message SendBatchNotificationsRequest {
+    repeated SendNotificationRequest notifications = 1;  // Batch of notifications
+    bool validate_only = 2;                             // Validation only flag
+}
+
+// SendBatchNotificationsResponse with batch results
+message SendBatchNotificationsResponse {
+    repeated Notification sent_notifications = 1;        // Successfully sent notifications
+    repeated string failed_notifications = 2;            // Failed notification IDs
+    map<string, string> error_details = 3;              // Error details by notification ID
+}
+
+// GetUserNotificationsRequest for retrieving user notifications
+message GetUserNotificationsRequest {
+    string user_id = 1;                                 // User identifier
+    int32 page_size = 2;                               // Results per page
+    string page_token = 3;                             // Pagination token
+    repeated NotificationType types = 4;                // Filter by types
+    bool unread_only = 5;                              // Filter unread only
+    google.protobuf.Timestamp start_date = 6;          // Start date filter
+    google.protobuf.Timestamp end_date = 7;            // End date filter
+}
+
+// GetUserNotificationsResponse with pagination
+message GetUserNotificationsResponse {
+    repeated Notification notifications = 1;            // List of notifications
+    string next_page_token = 2;                        // Next page token
+    int32 total_count = 3;                             // Total count
+    int32 unread_count = 4;                            // Unread count
+}
+
+// UpdateNotificationStatusRequest for status updates
+message UpdateNotificationStatusRequest {
+    string notification_id = 1;                        // Notification identifier
+    string status = 2;                                 // New status
+    google.protobuf.Timestamp timestamp = 3;           // Update timestamp
+}
+
+// GetNotificationMetricsRequest for analytics
+message GetNotificationMetricsRequest {
+    string user_id = 1;                                // Optional user filter
+    google.protobuf.Timestamp start_date = 2;          // Start date
+    google.protobuf.Timestamp end_date = 3;            // End date
+    repeated NotificationType types = 4;               // Filter by types
+}
+
+// GetNotificationMetricsResponse with analytics data
+message GetNotificationMetricsResponse {
+    int32 total_sent = 1;                             // Total notifications sent
+    int32 total_delivered = 2;                         // Total successfully delivered
+    int32 total_failed = 3;                           // Total failed deliveries
+    map<string, int32> counts_by_type = 4;            // Counts by notification type
+    map<string, int32> counts_by_channel = 5;         // Counts by delivery channel
+    double average_delivery_time = 6;                  // Average delivery time (ms)
+    map<string, double> engagement_rates = 7;          // Engagement metrics
+}
+
+// NotificationService provides comprehensive notification management
+service NotificationService {
+    // SendNotification delivers a single notification
+    rpc SendNotification(SendNotificationRequest) returns (Notification) {}
+
+    // SendBatchNotifications delivers multiple notifications
+    rpc SendBatchNotifications(SendBatchNotificationsRequest) returns (SendBatchNotificationsResponse) {}
+
+    // GetUserNotifications retrieves notifications for a user
+    rpc GetUserNotifications(GetUserNotificationsRequest) returns (GetUserNotificationsResponse) {}
+
+    // UpdateNotificationStatus updates notification delivery status
+    rpc UpdateNotificationStatus(UpdateNotificationStatusRequest) returns (Notification) {}
+
+    // UpdateNotificationPreferences updates user notification preferences
+    rpc UpdateNotificationPreferences(NotificationPreference) returns (NotificationPreference) {}
+
+    // GetNotificationMetrics retrieves notification analytics
+    rpc GetNotificationMetrics(GetNotificationMetricsRequest) returns (GetNotificationMetricsResponse) {}
+}
