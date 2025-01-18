@@ -1,0 +1,465 @@
+openapi: 3.1.0
+info:
+  title: FPBE Pi Network Integration Service
+  version: 1.0.0
+  description: |
+    API specification for Pi Network integration service providing mining operations,
+    wallet management, and cryptocurrency transactions with enhanced security features.
+  contact:
+    name: FPBE Technical Support
+    email: support@fpbe.com
+  license:
+    name: Proprietary
+    
+servers:
+  - url: /api/v1/pi
+    description: Pi Network Integration Service Base URL
+
+tags:
+  - name: Mining
+    description: Mining session management endpoints
+  - name: Wallet
+    description: Pi wallet management endpoints
+  - name: Transactions
+    description: Pi transaction operations
+  - name: Compliance
+    description: Regulatory compliance endpoints
+
+components:
+  schemas:
+    DeviceInfo:
+      type: object
+      required:
+        - deviceId
+        - deviceType
+        - platform
+        - version
+        - hardwareSignature
+        - securityLevel
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        deviceType:
+          type: string
+          enum: [MOBILE, TABLET, DESKTOP]
+        platform:
+          type: string
+        version:
+          type: string
+        lastKnownLocation:
+          type: object
+          properties:
+            latitude:
+              type: number
+              format: float
+            longitude:
+              type: number
+              format: float
+            accuracy:
+              type: number
+            timestamp:
+              type: string
+              format: date-time
+        hardwareSignature:
+          type: string
+        securityLevel:
+          type: number
+          minimum: 0
+          maximum: 10
+
+    SecurityMetrics:
+      type: object
+      properties:
+        validationCount:
+          type: integer
+          minimum: 0
+        failedAttempts:
+          type: integer
+          minimum: 0
+        lastValidIp:
+          type: string
+          format: ipv4
+        riskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        anomalyFlags:
+          type: array
+          items:
+            type: string
+
+    MiningSession:
+      type: object
+      required:
+        - userId
+        - sessionId
+        - status
+        - miningRate
+        - deviceInfo
+      properties:
+        userId:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ACTIVE, PAUSED, STOPPED, ERROR]
+        miningRate:
+          type: number
+          minimum: 0.1
+          maximum: 1.0
+        totalMined:
+          type: number
+          minimum: 0
+        currentBalance:
+          type: number
+          minimum: 0
+        startTime:
+          type: string
+          format: date-time
+        lastUpdateTime:
+          type: string
+          format: date-time
+        lastValidationTime:
+          type: string
+          format: date-time
+        deviceInfo:
+          $ref: '#/components/schemas/DeviceInfo'
+        securityMetrics:
+          $ref: '#/components/schemas/SecurityMetrics'
+
+    PiWallet:
+      type: object
+      required:
+        - userId
+        - walletAddress
+        - status
+        - securityLevel
+        - complianceStatus
+      properties:
+        userId:
+          type: string
+          format: uuid
+        walletAddress:
+          type: string
+          pattern: ^pi[a-zA-Z0-9]{53}$
+        balance:
+          type: number
+          minimum: 0
+        status:
+          type: string
+          enum: [ACTIVE, LOCKED, SUSPENDED, PENDING_VERIFICATION, MAINTENANCE]
+        securityLevel:
+          type: string
+          enum: [BASIC, ENHANCED, MAXIMUM]
+        complianceStatus:
+          type: string
+          enum: [COMPLIANT, REVIEW_REQUIRED, NON_COMPLIANT]
+        lastAuditDate:
+          type: string
+          format: date-time
+        dailyTransactionLimit:
+          type: number
+          minimum: 0
+        monthlyTransactionLimit:
+          type: number
+          minimum: 0
+        riskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    Transaction:
+      type: object
+      required:
+        - walletId
+        - type
+        - amount
+        - fromAddress
+        - toAddress
+      properties:
+        walletId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [MINING, TRANSFER, EXCHANGE, SYSTEM]
+        amount:
+          type: number
+          minimum: 0
+        fromAddress:
+          type: string
+          pattern: ^pi[a-zA-Z0-9]{53}$
+        toAddress:
+          type: string
+          pattern: ^pi[a-zA-Z0-9]{53}$
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, FAILED, UNDER_REVIEW]
+        riskAssessment:
+          type: object
+          additionalProperties:
+            type: number
+        complianceChecks:
+          type: array
+          items:
+            type: string
+        regulatoryFlags:
+          type: array
+          items:
+            type: string
+
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      description: OAuth 2.0 authentication with PKCE
+      flows:
+        authorizationCode:
+          authorizationUrl: /auth/authorize
+          tokenUrl: /auth/token
+          refreshUrl: /auth/refresh
+          scopes:
+            mining:write: Create and manage mining sessions
+            mining:read: View mining session details
+            wallet:read: View wallet information
+            wallet:write: Manage wallet operations
+            transactions:write: Create and manage transactions
+            compliance:read: View compliance status
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+paths:
+  /mining/sessions:
+    post:
+      tags: [Mining]
+      summary: Create new mining session
+      security:
+        - OAuth2: [mining:write]
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - deviceInfo
+              properties:
+                deviceInfo:
+                  $ref: '#/components/schemas/DeviceInfo'
+      responses:
+        '201':
+          description: Mining session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MiningSession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+    get:
+      tags: [Mining]
+      summary: Get active mining sessions
+      security:
+        - OAuth2: [mining:read]
+        - ApiKey: []
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of active mining sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MiningSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /wallets:
+    post:
+      tags: [Wallet]
+      summary: Create new Pi wallet
+      security:
+        - OAuth2: [wallet:write]
+        - ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - securityLevel
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                securityLevel:
+                  type: string
+                  enum: [BASIC, ENHANCED, MAXIMUM]
+      responses:
+        '201':
+          description: Wallet created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PiWallet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [Wallet]
+      summary: Get wallet details
+      security:
+        - OAuth2: [wallet:read]
+        - ApiKey: []
+      parameters:
+        - name: walletAddress
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: ^pi[a-zA-Z0-9]{53}$
+      responses:
+        '200':
+          description: Wallet details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PiWallet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /wallets/{walletId}/transactions:
+    post:
+      tags: [Transactions]
+      summary: Create new transaction
+      security:
+        - OAuth2: [transactions:write]
+        - ApiKey: []
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+components:
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: string
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+            format: unix-timestamp
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+              retryAfter:
+                type: integer
