@@ -1,0 +1,315 @@
+---
+# Ansible playbook for ELK stack deployment with security and monitoring
+# Version: 1.0.0
+# External module versions:
+# - kubernetes.core: 2.0.0
+# - community.docker: 3.0.0
+# - ansible.posix: 1.5.1
+
+- name: Deploy ELK Stack Infrastructure
+  hosts: logging_servers
+  become: true
+  become_user: root
+  gather_facts: true
+  tags:
+    - logging
+    - elk
+    - monitoring
+    - security
+    - compliance
+
+  vars:
+    elk_version: "8.7.0"
+    elasticsearch_heap_size: "2g"
+    logstash_heap_size: "1g"
+    retention_days: 30
+    security_enabled: true
+    monitoring_enabled: true
+
+    elasticsearch_config:
+      cluster_name: fpbe-logs
+      node_roles: ["master", "data"]
+      discovery_type: single-node
+      bootstrap_memory_lock: true
+      network_host: "0.0.0.0"
+      heap_size: "2g"
+      security_enabled: true
+      monitoring_enabled: true
+      tls_enabled: true
+      audit_logging: true
+      xpack_security: true
+      encryption_at_rest: true
+      snapshot_repository: s3-backup
+
+    logstash_config:
+      pipeline_workers: 2
+      pipeline_batch_size: 125
+      pipeline_batch_delay: 50
+      queue_type: persisted
+      queue_max_bytes: "1gb"
+      heap_size: "1g"
+      monitoring_enabled: true
+      data_masking_enabled: true
+      input_validation: true
+      error_handling: true
+
+    kibana_config:
+      server_name: fpbe-kibana
+      server_port: 5601
+      elasticsearch_hosts: ["http://elasticsearch:9200"]
+      monitoring_enabled: true
+      security_enabled: true
+      encryption_key: "auto_generated"
+      alert_enabled: true
+      reporting_enabled: true
+
+    retention_config:
+      enabled: true
+      days: 30
+      index_pattern: "logstash-*"
+      snapshot_retention: 90
+      index_lifecycle: true
+      archival_policy: true
+
+    monitoring_config:
+      metrics_enabled: true
+      logging_enabled: true
+      alert_enabled: true
+      thresholds:
+        failed_logins: 5
+        api_requests: 1000
+        cpu_usage: 80
+        memory_usage: 85
+        disk_usage: 75
+      notification_channels: ["email", "slack", "pagerduty"]
+
+  pre_tasks:
+    - name: Verify system requirements
+      ansible.builtin.assert:
+        that:
+          - ansible_memory_mb.real.total >= 8192  # Minimum 8GB RAM
+          - ansible_processor_vcpus >= 4  # Minimum 4 vCPUs
+        msg: "System does not meet minimum requirements"
+
+    - name: Create required directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0750'
+        owner: root
+        group: root
+      loop:
+        - /etc/elasticsearch
+        - /etc/logstash
+        - /etc/kibana
+        - /var/log/elasticsearch
+        - /var/log/logstash
+        - /var/log/kibana
+        - /opt/elk/certs
+        - /opt/elk/data
+
+  tasks:
+    - name: Generate TLS certificates
+      community.crypto.openssl_certificate:
+        path: "/opt/elk/certs/{{ item }}.crt"
+        privatekey_path: "/opt/elk/certs/{{ item }}.key"
+        provider: selfsigned
+        selfsigned_digest: sha256
+      loop:
+        - elasticsearch
+        - logstash
+        - kibana
+
+    - name: Deploy Elasticsearch
+      community.docker.docker_container:
+        name: elasticsearch
+        image: "docker.elastic.co/elasticsearch/elasticsearch:{{ elk_version }}"
+        state: started
+        restart_policy: unless-stopped
+        env:
+          ES_JAVA_OPTS: "-Xms{{ elasticsearch_config.heap_size }} -Xmx{{ elasticsearch_config.heap_size }}"
+          discovery.type: "{{ elasticsearch_config.discovery_type }}"
+          bootstrap.memory_lock: "{{ elasticsearch_config.bootstrap_memory_lock }}"
+          xpack.security.enabled: "{{ elasticsearch_config.security_enabled }}"
+          xpack.monitoring.enabled: "{{ elasticsearch_config.monitoring_enabled }}"
+          xpack.security.audit.enabled: "{{ elasticsearch_config.audit_logging }}"
+        volumes:
+          - /opt/elk/data/elasticsearch:/usr/share/elasticsearch/data
+          - /opt/elk/certs:/usr/share/elasticsearch/config/certs
+        ports:
+          - "9200:9200"
+          - "9300:9300"
+        ulimits:
+          memlock:
+            soft: -1
+            hard: -1
+        networks:
+          - name: elk-network
+
+    - name: Deploy Logstash
+      community.docker.docker_container:
+        name: logstash
+        image: "docker.elastic.co/logstash/logstash:{{ elk_version }}"
+        state: started
+        restart_policy: unless-stopped
+        env:
+          LS_JAVA_OPTS: "-Xms{{ logstash_config.heap_size }} -Xmx{{ logstash_config.heap_size }}"
+          pipeline.workers: "{{ logstash_config.pipeline_workers }}"
+          pipeline.batch.size: "{{ logstash_config.pipeline_batch_size }}"
+          queue.type: "{{ logstash_config.queue_type }}"
+          monitoring.enabled: "{{ logstash_config.monitoring_enabled }}"
+        volumes:
+          - /opt/elk/certs:/usr/share/logstash/config/certs
+          - /etc/logstash/pipeline:/usr/share/logstash/pipeline
+        ports:
+          - "5044:5044"
+          - "9600:9600"
+        networks:
+          - name: elk-network
+
+    - name: Deploy Kibana
+      community.docker.docker_container:
+        name: kibana
+        image: "docker.elastic.co/kibana/kibana:{{ elk_version }}"
+        state: started
+        restart_policy: unless-stopped
+        env:
+          ELASTICSEARCH_HOSTS: "{{ kibana_config.elasticsearch_hosts | to_json }}"
+          SERVER_NAME: "{{ kibana_config.server_name }}"
+          XPACK_SECURITY_ENABLED: "{{ kibana_config.security_enabled }}"
+          XPACK_MONITORING_ENABLED: "{{ kibana_config.monitoring_enabled }}"
+          XPACK_REPORTING_ENABLED: "{{ kibana_config.reporting_enabled }}"
+        volumes:
+          - /opt/elk/certs:/usr/share/kibana/config/certs
+        ports:
+          - "{{ kibana_config.server_port }}:5601"
+        networks:
+          - name: elk-network
+
+    - name: Configure Elasticsearch Security
+      community.docker.docker_container_exec:
+        container: elasticsearch
+        command: elasticsearch-setup-passwords auto
+      register: elastic_passwords
+      when: elasticsearch_config.security_enabled
+
+    - name: Configure Index Lifecycle Management
+      uri:
+        url: "http://localhost:9200/_ilm/policy/logs_policy"
+        method: PUT
+        body: |
+          {
+            "policy": {
+              "phases": {
+                "hot": {
+                  "actions": {}
+                },
+                "delete": {
+                  "min_age": "{{ retention_config.days }}d",
+                  "actions": {
+                    "delete": {}
+                  }
+                }
+              }
+            }
+          }
+        body_format: json
+        headers:
+          Content-Type: "application/json"
+        status_code: 200
+
+    - name: Configure Monitoring Alerts
+      uri:
+        url: "http://localhost:9200/_watcher/watch/system_alert"
+        method: PUT
+        body: |
+          {
+            "trigger": {
+              "schedule": {
+                "interval": "5m"
+              }
+            },
+            "input": {
+              "search": {
+                "request": {
+                  "indices": ["logstash-*"],
+                  "body": {
+                    "query": {
+                      "bool": {
+                        "must": [
+                          { "match": { "level": "error" } }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "condition": {
+              "compare": {
+                "ctx.payload.hits.total": {
+                  "gt": {{ monitoring_config.thresholds.failed_logins }}
+                }
+              }
+            },
+            "actions": {
+              "email_admin": {
+                "email": {
+                  "to": "admin@fpbe.com",
+                  "subject": "High Error Rate Alert"
+                }
+              }
+            }
+          }
+        body_format: json
+        headers:
+          Content-Type: "application/json"
+        status_code: 200
+
+  post_tasks:
+    - name: Verify ELK Stack Health
+      uri:
+        url: "http://localhost:9200/_cluster/health"
+        method: GET
+        return_content: yes
+      register: cluster_health
+      until: cluster_health.json.status == "green"
+      retries: 12
+      delay: 10
+
+    - name: Setup Backup Repository
+      uri:
+        url: "http://localhost:9200/_snapshot/{{ elasticsearch_config.snapshot_repository }}"
+        method: PUT
+        body: |
+          {
+            "type": "s3",
+            "settings": {
+              "bucket": "fpbe-elk-backup",
+              "region": "us-east-1",
+              "compress": true
+            }
+          }
+        body_format: json
+        headers:
+          Content-Type: "application/json"
+        status_code: 200
+
+  handlers:
+    - name: restart elasticsearch
+      community.docker.docker_container:
+        name: elasticsearch
+        state: started
+        restart: yes
+
+    - name: restart logstash
+      community.docker.docker_container:
+        name: logstash
+        state: started
+        restart: yes
+
+    - name: restart kibana
+      community.docker.docker_container:
+        name: kibana
+        state: started
+        restart: yes
