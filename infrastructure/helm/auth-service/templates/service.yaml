@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "auth-service.fullname" . }}
+  labels:
+    app: {{ template "auth-service.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    component: backend
+    part-of: fpbe
+    service-mesh.istio.io/managed: "true"
+    security.istio.io/tlsMode: "istio"
+  annotations:
+    # Prometheus monitoring annotations
+    prometheus.io/scrape: "{{ .Values.monitoring.serviceMonitor.enabled }}"
+    prometheus.io/port: "{{ .Values.service.port }}"
+    prometheus.io/path: "{{ .Values.monitoring.serviceMonitor.path }}"
+    
+    # Istio service mesh annotations
+    service.istio.io/canonical-name: "{{ template "auth-service.name" . }}"
+    service.istio.io/canonical-revision: "{{ .Values.image.tag }}"
+    
+    # Topology awareness
+    topology.kubernetes.io/zone: "{{ .Values.service.topology.zone }}"
+    
+    # Security annotations
+    security.fpbe.com/compliance: "PCI-DSS,GDPR"
+    
+    # Service metadata
+    service.kubernetes.io/description: "Authentication service for FPBE mobile banking"
+    service.kubernetes.io/version: "{{ .Chart.Version }}"
+
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    # Main application port
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+      appProtocol: http
+    
+    # Metrics port for monitoring
+    - port: {{ .Values.monitoring.serviceMonitor.port }}
+      targetPort: {{ .Values.monitoring.serviceMonitor.targetPort }}
+      protocol: TCP
+      name: metrics
+  
+  selector:
+    app: {{ template "auth-service.name" . }}
+    release: {{ .Release.Name }}
+    version: {{ .Values.image.tag }}
+  
+  # Session affinity configuration for better user experience
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours session stickiness
+  
+  # Topology aware routing configuration
+  topologyKeys:
+    - "kubernetes.io/hostname"
+    - "topology.kubernetes.io/zone"
+    - "topology.kubernetes.io/region"
+    - "*"
