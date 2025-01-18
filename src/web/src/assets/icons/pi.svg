@@ -1,0 +1,19 @@
+<svg 
+  xmlns="http://www.w3.org/2000/svg" 
+  viewBox="0 0 24 24" 
+  width="24" 
+  height="24" 
+  fill="currentColor"
+  stroke="none"
+  role="img"
+  aria-label="Pi cryptocurrency icon"
+>
+  <!-- 
+    Pi cryptocurrency icon
+    Version: 1.0.0
+    Usage: Mobile banking app Pi Network integration
+    Contexts: Navigation, mining interface, wallet displays
+    Theme support: Uses currentColor for automatic light/dark theme adaptation
+  -->
+  <path d="M5 4h14c.55 0 1 .45 1 1v1h-2V5H6v1H4V5c0-.55.45-1 1-1zm13 3v9c0 .55-.45 1-1 1h-2V8h-2v9h-2V8H9v9H7c-.55 0-1-.45-1-1V7h12zm1 11H5c-.55 0-1-.45-1-1v-1h2v1h12v-1h2v1c0 .55-.45 1-1 1z"/>
+</svg>
