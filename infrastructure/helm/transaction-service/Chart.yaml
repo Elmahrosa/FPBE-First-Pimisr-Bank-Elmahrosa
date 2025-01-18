@@ -1,0 +1,26 @@
+apiVersion: v2
+type: application
+name: transaction-service
+version: 1.0.0
+appVersion: 1.0.0
+description: A Helm chart for deploying the FPBE Transaction Service microservice with event sourcing capabilities, high availability, and automatic failover support
+
+keywords:
+  - transaction
+  - banking
+  - microservice
+  - event-sourcing
+  - spring-boot
+  - high-availability
+  - kubernetes
+  - fpbe
+
+maintainers:
+  - name: FPBE DevOps Team
+    email: devops@fpbe.com
+    url: https://github.com/fpbe/transaction-service
+
+dependencies:
+  - name: common
+    version: 2.x.x
+    repository: https://charts.bitnami.com/bitnami
