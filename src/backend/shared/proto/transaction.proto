@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package com.fpbe.proto.transaction;
+
+import "google/protobuf/timestamp.proto";  // v3.0.0
+import "google/protobuf/empty.proto";      // v3.0.0
+import "account.proto";                    // Internal import for account references
+
+option java_multiple_files = true;
+option java_package = "com.fpbe.proto.transaction";
+option java_outer_classname = "TransactionProto";
+
+// Transaction represents a comprehensive financial transaction record
+message Transaction {
+    string id = 1;                                 // Unique transaction identifier
+    string from_account_id = 2;                    // Source account ID
+    string to_account_id = 3;                      // Destination account ID
+    TransactionType type = 4;                      // Type of transaction
+    double amount = 5;                             // Transaction amount
+    string currency = 6;                           // ISO 4217 currency code or PI
+    TransactionStatus status = 7;                  // Current transaction status
+    map<string, string> metadata = 8;              // Additional transaction metadata
+    google.protobuf.Timestamp created_at = 9;      // Creation timestamp
+    google.protobuf.Timestamp updated_at = 10;     // Last update timestamp
+    string transaction_hash = 11;                  // Blockchain hash for Pi transactions
+    repeated TransactionEvent events = 12;         // Audit trail events
+    SecurityInfo security_info = 13;               // Security-related information
+}
+
+// TransactionType enumerates all supported transaction types
+enum TransactionType {
+    TRANSACTION_TYPE_UNSPECIFIED = 0;              // Default unspecified value
+    FIAT_TRANSFER = 1;                            // Traditional currency transfer
+    PI_TRANSFER = 2;                              // Pi cryptocurrency transfer
+    CURRENCY_EXCHANGE = 3;                        // Currency exchange operation
+    PAYMENT = 4;                                  // Payment to merchant/service
+    REFUND = 5;                                   // Refund transaction
+}
+
+// TransactionStatus tracks the lifecycle of a transaction
+enum TransactionStatus {
+    STATUS_UNSPECIFIED = 0;                       // Default unspecified value
+    PENDING = 1;                                  // Initial state, awaiting processing
+    PROCESSING = 2;                               // Transaction being processed
+    COMPLETED = 3;                                // Successfully completed
+    FAILED = 4;                                   // Transaction failed
+    REVERSED = 5;                                 // Transaction reversed/rolled back
+}
+
+// TransactionEvent represents an audit event in the transaction lifecycle
+message TransactionEvent {
+    string event_id = 1;                          // Unique event identifier
+    string event_type = 2;                        // Type of event
+    google.protobuf.Timestamp timestamp = 3;      // Event timestamp
+    string description = 4;                       // Event description
+    map<string, string> event_metadata = 5;       // Additional event metadata
+}
+
+// SecurityInfo contains security-related transaction information
+message SecurityInfo {
+    string risk_score = 1;                        // Transaction risk assessment score
+    repeated string security_flags = 2;           // Security warning flags
+    string verification_method = 3;               // Method used for verification
+    map<string, string> security_metadata = 4;    // Additional security metadata
+}
+
+// CreateTransactionRequest for initiating new transactions
+message CreateTransactionRequest {
+    string from_account_id = 1;                   // Source account ID
+    string to_account_id = 2;                     // Destination account ID
+    TransactionType type = 3;                     // Transaction type
+    double amount = 4;                            // Transaction amount
+    string currency = 5;                          // Transaction currency
+    map<string, string> metadata = 6;             // Additional transaction metadata
+    string idempotency_key = 7;                   // Idempotency key for safe retries
+    SecurityInfo security_info = 8;               // Security information
+}
+
+// GetTransactionRequest for retrieving transaction details
+message GetTransactionRequest {
+    string transaction_id = 1;                    // Transaction ID to retrieve
+    bool include_events = 2;                      // Include audit events flag
+}
+
+// GetAccountTransactionsRequest for retrieving account transactions
+message GetAccountTransactionsRequest {
+    string account_id = 1;                        // Account ID to query
+    int32 page_size = 2;                         // Number of transactions per page
+    string page_token = 3;                       // Pagination token
+    google.protobuf.Timestamp start_date = 4;    // Start date filter
+    google.protobuf.Timestamp end_date = 5;      // End date filter
+    repeated TransactionType types = 6;          // Filter by transaction types
+    repeated TransactionStatus statuses = 7;     // Filter by transaction statuses
+    string currency = 8;                         // Filter by currency
+    double min_amount = 9;                       // Minimum amount filter
+    double max_amount = 10;                      // Maximum amount filter
+}
+
+// GetAccountTransactionsResponse with pagination and aggregates
+message GetAccountTransactionsResponse {
+    repeated Transaction transactions = 1;        // List of transactions
+    string next_page_token = 2;                  // Token for next page
+    int32 total_count = 3;                       // Total number of transactions
+    double total_amount = 4;                     // Total amount of transactions
+    map<string, double> amount_by_currency = 5;  // Amounts grouped by currency
+}
+
+// ValidationResponse for transaction validation results
+message ValidationResponse {
+    bool is_valid = 1;                          // Validation result
+    repeated string validation_errors = 2;       // List of validation errors
+    SecurityInfo security_info = 3;              // Updated security information
+}
+
+// ReverseTransactionRequest for transaction reversal
+message ReverseTransactionRequest {
+    string transaction_id = 1;                   // Transaction to reverse
+    string reason = 2;                          // Reversal reason
+    map<string, string> metadata = 3;           // Additional reversal metadata
+}
+
+// TransactionService provides comprehensive transaction management
+service TransactionService {
+    // CreateTransaction initiates a new transaction with validation
+    rpc CreateTransaction(CreateTransactionRequest) returns (Transaction) {}
+
+    // GetTransaction retrieves transaction details
+    rpc GetTransaction(GetTransactionRequest) returns (Transaction) {}
+
+    // GetAccountTransactions retrieves transactions for an account
+    rpc GetAccountTransactions(GetAccountTransactionsRequest) returns (GetAccountTransactionsResponse) {}
+
+    // ValidateTransaction validates a transaction before processing
+    rpc ValidateTransaction(Transaction) returns (ValidationResponse) {}
+
+    // ReverseTransaction reverses a completed transaction
+    rpc ReverseTransaction(ReverseTransactionRequest) returns (Transaction) {}
+}
