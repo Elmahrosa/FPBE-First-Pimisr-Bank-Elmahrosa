@@ -1,0 +1,194 @@
+---
+# Ansible playbook for setting up comprehensive security infrastructure
+# ansible.builtin version: 2.15+
+# community.aws version: 6.0+
+# community.kubernetes version: 2.0+
+# community.crypto version: 2.0+
+
+- name: Setup and configure security infrastructure
+  hosts: security
+  become: true
+  gather_facts: true
+  tags:
+    - security
+    - hsm
+    - waf
+    - siem
+    - vault
+    - compliance
+    - ml
+
+  vars:
+    vault_addr: https://vault.fpbe.internal:8200
+    waf_config_path: /etc/modsecurity/modsecurity.conf
+    siem_endpoint: "{{ siem_endpoint | default('https://siem.fpbe.internal') }}"
+    monitoring_interval: 60
+    alert_threshold: 5
+    log_retention_days: 90
+    key_rotation_days: 30
+    ml_update_interval: 24
+    compliance_check_interval: 12
+    hsm_config:
+      partition_name: fpbe_banking
+      crypto_user: hsm_admin
+      key_types:
+        - aes256
+        - rsa4096
+      backup_schedule: daily
+      fips_mode: level3
+
+  pre_tasks:
+    - name: Verify prerequisites
+      ansible.builtin.assert:
+        that:
+          - env is defined
+          - vault_version is defined
+          - waf_rules_path is defined
+          - siem_endpoint is defined
+          - ml_model_path is defined
+          - compliance_rules is defined
+        fail_msg: "Required variables are not set"
+
+  tasks:
+    - name: Include security tasks
+      ansible.builtin.include_role:
+        name: security_tasks
+        tasks_from: main.yml
+
+    - name: Setup Hardware Security Module
+      block:
+        - name: Configure HSM with FIPS compliance
+          ansible.builtin.template:
+            src: hsm/fips-config.j2
+            dest: /etc/hsm/fips.conf
+            mode: '0600'
+          notify: restart_hsm
+
+        - name: Setup automated key rotation
+          ansible.builtin.cron:
+            name: "HSM key rotation"
+            job: "/usr/local/bin/rotate-hsm-keys.sh"
+            hour: "0"
+            minute: "0"
+            day: "*/{{ key_rotation_days }}"
+
+        - name: Configure HSM monitoring
+          ansible.builtin.template:
+            src: hsm/monitoring.j2
+            dest: /etc/hsm/monitoring.conf
+            mode: '0644'
+          notify: reload_monitoring
+      tags: [hsm, security]
+
+    - name: Configure WAF with ML-based detection
+      block:
+        - name: Deploy ML models for threat detection
+          ansible.builtin.copy:
+            src: "{{ ml_model_path }}/threat-detection/"
+            dest: /opt/waf/ml/models/
+            mode: '0644'
+
+        - name: Configure WAF ML engine
+          ansible.builtin.template:
+            src: waf/ml-config.j2
+            dest: /etc/modsecurity/ml-engine.conf
+            mode: '0644'
+          notify: reload_waf
+
+        - name: Setup WAF compliance reporting
+          ansible.builtin.template:
+            src: waf/compliance-reporting.j2
+            dest: /etc/modsecurity/compliance.conf
+            mode: '0644'
+      tags: [waf, security, ml]
+
+    - name: Setup SIEM integration
+      block:
+        - name: Configure SIEM collectors
+          ansible.builtin.template:
+            src: siem/collectors.j2
+            dest: /etc/siem/collectors.conf
+            mode: '0644'
+          notify: restart_siem
+
+        - name: Setup ML-based anomaly detection
+          ansible.builtin.template:
+            src: siem/ml-anomaly.j2
+            dest: /etc/siem/ml-anomaly.conf
+            mode: '0644'
+          notify: reload_siem_config
+      tags: [siem, security, ml]
+
+    - name: Configure Vault
+      block:
+        - name: Setup Vault auto-unseal
+          ansible.builtin.template:
+            src: vault/auto-unseal.j2
+            dest: /etc/vault.d/auto-unseal.hcl
+            mode: '0600'
+          notify: restart_vault
+
+        - name: Configure Vault audit logging
+          ansible.builtin.template:
+            src: vault/audit.j2
+            dest: /etc/vault.d/audit.hcl
+            mode: '0600'
+          notify: reload_vault_config
+      tags: [vault, security]
+
+  post_tasks:
+    - name: Verify security setup
+      block:
+        - name: Verify HSM FIPS compliance
+          ansible.builtin.command:
+            cmd: hsm-verify-fips
+          register: fips_check
+          failed_when: fips_check.rc != 0
+
+        - name: Test ML threat detection
+          ansible.builtin.command:
+            cmd: test-ml-detection
+          register: ml_check
+          failed_when: ml_check.rc != 0
+
+        - name: Validate compliance reporting
+          ansible.builtin.command:
+            cmd: verify-compliance-reports
+          register: compliance_check
+          failed_when: compliance_check.rc != 0
+
+  handlers:
+    - name: restart_hsm
+      ansible.builtin.service:
+        name: hsm-service
+        state: restarted
+
+    - name: reload_monitoring
+      ansible.builtin.service:
+        name: monitoring-agent
+        state: reloaded
+
+    - name: reload_waf
+      ansible.builtin.service:
+        name: modsecurity
+        state: reloaded
+
+    - name: restart_siem
+      ansible.builtin.service:
+        name: siem-collector
+        state: restarted
+
+    - name: reload_siem_config
+      ansible.builtin.service:
+        name: siem-collector
+        state: reloaded
+
+    - name: restart_vault
+      ansible.builtin.service:
+        name: vault
+        state: restarted
+
+    - name: reload_vault_config
+      ansible.builtin.service:
+        name: vault
+        state: reloaded
