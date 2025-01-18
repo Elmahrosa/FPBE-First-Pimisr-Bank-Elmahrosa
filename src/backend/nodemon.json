@@ -1,0 +1,40 @@
+{
+  "watch": [
+    "api-gateway/src/**/*.ts",
+    "auth-service/src/**/*.ts", 
+    "account-service/src/**/*.ts",
+    "transaction-service/src/**/*.ts",
+    "pi-service/src/**/*.ts",
+    "notification-service/src/**/*.ts",
+    "shared/**/*.ts"
+  ],
+  "ignore": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "node_modules",
+    "dist",
+    "coverage",
+    ".git",
+    "logs"
+  ],
+  "exec": "ts-node",
+  "ext": ".ts,.js,.json",
+  "delay": 1000,
+  "verbose": true,
+  "env": {
+    "NODE_ENV": "development",
+    "TS_NODE_PROJECT": "./tsconfig.json",
+    "DEBUG": "fpbe:*"
+  },
+  "events": {
+    "start": "echo 'Starting FPBE backend services...'",
+    "restart": "echo 'Restarting FPBE backend services...'",
+    "crash": "echo 'FPBE backend services crashed - waiting for changes before restart'",
+    "quit": "echo 'FPBE backend services terminated'"
+  },
+  "restartable": "rs",
+  "colours": true,
+  "legacyWatch": false
+}
