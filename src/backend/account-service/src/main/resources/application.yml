@@ -1,0 +1,138 @@
+# Spring Boot Application Configuration for Account Service
+# Version: 1.0
+# Last Updated: 2023-09-21
+
+spring:
+  application:
+    name: account-service
+
+  # Enhanced database connection settings with HikariCP
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:fpbe_accounts}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 10
+      maximum-pool-size: 50
+      idle-timeout: 30000
+      connection-timeout: 2000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      validation-timeout: 1000
+      connection-test-query: SELECT 1
+      pool-name: AccountHikariPool
+      auto-commit: false
+
+  # JPA and Hibernate optimization settings
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: false
+        generate_statistics: true
+        jdbc:
+          batch_size: 100
+          fetch_size: 100
+        order_inserts: true
+        order_updates: true
+        query:
+          fail_on_pagination_over_collection_fetch: true
+          in_clause_parameter_padding: true
+        connection:
+          provider_disables_autocommit: true
+
+  # Security configuration
+  security:
+    ssl:
+      enabled: true
+      key-store: classpath:keystore.p12
+      key-store-password: ${SSL_KEY_STORE_PASSWORD}
+      key-store-type: PKCS12
+      require-ssl: true
+
+# Server configuration
+server:
+  port: 8081
+  tomcat:
+    max-threads: 200
+    min-spare-threads: 20
+    max-connections: 10000
+    accept-count: 100
+    connection-timeout: 5000
+
+# Management and monitoring configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info,loggers
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: account-service
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      sla:
+        http.server.requests: 100ms,200ms,300ms
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Resilience patterns configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      accountService:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 100
+        slowCallDurationThreshold: 60000
+  retry:
+    instances:
+      accountService:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+
+# Logging configuration
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{traceId}/%X{spanId}] [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.fpbe.account: DEBUG
+  file:
+    name: logs/account-service.log
+    max-size: 10MB
+    max-history: 30
+
+# Cache configuration
+cache:
+  type: redis
+  redis:
+    time-to-live: 3600000
+    cache-null-values: false
+    use-key-prefix: true
+
+# Cloud configuration for service discovery
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    preferIpAddress: true
+    lease-renewal-interval-in-seconds: 30
