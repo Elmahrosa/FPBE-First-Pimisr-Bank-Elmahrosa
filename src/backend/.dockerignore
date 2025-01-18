@@ -1,0 +1,100 @@
+node_modules
+npm-debug.log
+*.log
+
+# Java build output
+target/
+*.class
+*.jar
+
+# Version control
+.git
+.gitignore
+
+# Documentation
+*.md
+README.md
+LICENSE
+
+# Test files and directories
+*.test.ts
+*.test.js
+*.Test.java
+tests/
+coverage/
+
+# Environment and configuration
+.env
+.env.*
+*.properties
+application*.yml
+application*.yaml
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Build outputs
+dist/
+build/
+out/
+
+# Docker files
+.dockerignore
+docker-compose*.yml
+Dockerfile*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Debug files
+*.debug
+
+# Local development files
+local/
+dev/
+
+# Dependency lock files
+package-lock.json
+yarn.lock
+pom.xml.lock
+
+# Generated files
+generated/
+.generated/
+
+# Cache directories
+.cache/
+.npm/
+.m2/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Security and keys
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+# Metrics and monitoring
+metrics/
+monitoring/
+
+# Database files
+*.db
+*.sqlite
+*.h2.db
+
+# Backup files
+*.bak
+*.backup
+*-backup
