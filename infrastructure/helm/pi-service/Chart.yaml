@@ -1,0 +1,39 @@
+apiVersion: v2
+type: application
+name: pi-service
+description: A Helm chart for deploying the FPBE Pi Network integration service with vertical scaling and redundancy support
+version: 1.0.0
+appVersion: 1.0.0
+
+# Maintainer information
+maintainers:
+  - name: FPBE DevOps Team
+    email: devops@fpbe.com
+
+# Keywords for chart discovery and categorization
+keywords:
+  - pi-network
+  - cryptocurrency
+  - banking
+  - microservice
+  - node-service
+  - fpbe
+
+# Chart dependencies
+dependencies:
+  - name: common
+    version: 1.x.x
+    repository: file://../common
+
+# Engine requirements
+engine:
+  node: ">=18.0.0"
+
+# Kubernetes version requirement
+kubeVersion: ">=1.21.0"
+
+# Annotations for metrics and monitoring
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
