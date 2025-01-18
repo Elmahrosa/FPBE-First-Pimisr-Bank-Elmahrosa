@@ -1,0 +1,159 @@
+# Kong API Gateway Helm Chart Values
+# Version: 3.2
+
+nameOverride: "fpbe-api-gateway"
+fullnameOverride: "fpbe-api-gateway"
+
+kong:
+  enabled: true
+  ingressController:
+    enabled: true
+    installCRDs: false
+
+  admin:
+    enabled: true
+    http:
+      enabled: true
+      containerPort: 8001
+    ingress:
+      enabled: false
+
+  proxy:
+    enabled: true
+    type: LoadBalancer
+    http:
+      enabled: true
+      containerPort: 8000
+    tls:
+      enabled: true
+      containerPort: 8443
+
+  env:
+    database: "off"
+    proxy_access_log: "/dev/stdout"
+    admin_access_log: "/dev/stdout"
+    proxy_error_log: "/dev/stderr"
+    admin_error_log: "/dev/stderr"
+    admin_listen: "0.0.0.0:8001"
+    proxy_listen: "0.0.0.0:8000 ssl"
+    ssl_cert: "/etc/secrets/tls.crt"
+    ssl_cert_key: "/etc/secrets/tls.key"
+    lua_ssl_trusted_certificate: "/etc/ssl/certs/ca-certificates.crt"
+    real_ip_header: "X-Forwarded-For"
+    real_ip_recursive: "on"
+    trusted_ips: "0.0.0.0/0"
+    ssl_protocols: "TLSv1.2 TLSv1.3"
+    ssl_prefer_server_ciphers: "on"
+    ssl_session_tickets: "off"
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+deployment:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8001"
+    sidecar.istio.io/inject: "true"
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/role: "api-gateway"
+  
+  replicaCount: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: "30s"
+    scrapeTimeout: "10s"
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: "30s"
+  prometheusRules:
+    enabled: true
+    rules:
+      - alert: KongHighErrorRate
+        expr: sum(rate(kong_http_requests_total{status=~"5.."}[5m])) / sum(rate(kong_http_requests_total[5m])) > 0.05
+        for: "5m"
+        labels:
+          severity: critical
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: "kong"
+    konghq.com/strip-path: "true"
+    konghq.com/protocols: "https"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    konghq.com/https-redirect-status-code: "301"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  tls:
+    enabled: true
+    secretName: "api-gateway-tls"
+
+networkPolicies:
+  enabled: true
+  ingressRules:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: fpbe
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 8001
+        - protocol: TCP
+          port: 8443
+  egressRules:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: fpbe
+      ports:
+        - protocol: TCP
+          port: 443
