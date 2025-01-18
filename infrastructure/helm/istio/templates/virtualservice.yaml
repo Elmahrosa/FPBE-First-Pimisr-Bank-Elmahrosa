@@ -1,0 +1,148 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Release.Name }}-virtualservice
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: fpbe
+    component: service-mesh
+    version: {{ .Chart.Version }}
+    managed-by: {{ .Release.Service }}
+  annotations:
+    sidecar.istio.io/inject: "true"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "15020"
+spec:
+  hosts:
+    - "api.fpbe.com"
+    - "*.fpbe.svc.cluster.local"
+  gateways:
+    - {{ .Release.Name }}-gateway
+  http:
+    # Auth Service Routes
+    - name: auth-routes
+      match:
+        - uri:
+            prefix: "/api/v1/auth"
+      route:
+        - destination:
+            host: auth-service
+            port:
+              number: 8080
+            subset: v1
+      timeout: 5s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "connect-failure,refused-stream,unavailable,cancelled,resource-exhausted"
+      fault:
+        delay:
+          percentage:
+            value: 0.1
+          fixedDelay: 1s
+      corsPolicy:
+        allowOrigins:
+          - exact: "https://app.fpbe.com"
+        allowMethods:
+          - POST
+          - GET
+          - OPTIONS
+        allowHeaders:
+          - Authorization
+          - Content-Type
+          - x-request-id
+        maxAge: "24h"
+
+    # Transaction Service Routes
+    - name: transaction-routes
+      match:
+        - uri:
+            prefix: "/api/v1/transactions"
+      route:
+        - destination:
+            host: transaction-service
+            port:
+              number: 8080
+            subset: v1
+      timeout: 10s
+      retries:
+        attempts: 5
+        perTryTimeout: 2s
+        retryOn: "connect-failure,refused-stream,unavailable,cancelled,resource-exhausted,5xx"
+      fault:
+        delay:
+          percentage:
+            value: 0.05
+          fixedDelay: 2s
+      headers:
+        request:
+          set:
+            x-transaction-id: "{{ "{{" }} $requestid {{ "}}" }}"
+
+    # Pi Network Service Routes
+    - name: pi-network-routes
+      match:
+        - uri:
+            prefix: "/api/v1/pi"
+      route:
+        - destination:
+            host: pi-service
+            port:
+              number: 8080
+            subset: v1
+      timeout: 15s
+      retries:
+        attempts: 3
+        perTryTimeout: 5s
+        retryOn: "connect-failure,refused-stream,unavailable,cancelled,resource-exhausted"
+      headers:
+        request:
+          set:
+            x-pi-network-version: "1.0"
+
+    # Account Service Routes
+    - name: account-routes
+      match:
+        - uri:
+            prefix: "/api/v1/accounts"
+      route:
+        - destination:
+            host: account-service
+            port:
+              number: 8080
+            subset: v1
+      timeout: 7s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: "connect-failure,refused-stream,unavailable,cancelled,resource-exhausted"
+
+  # TLS Settings
+  tls:
+    - match:
+        - port: 443
+          sniHosts:
+            - api.fpbe.com
+      route:
+        - destination:
+            host: istio-ingressgateway.{{ .Values.global.istioNamespace }}.svc.cluster.local
+            port:
+              number: 443
+
+  # Circuit Breaker Settings
+  trafficPolicy:
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 10
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30ms
+      http:
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+    loadBalancer:
+      simple: ROUND_ROBIN
