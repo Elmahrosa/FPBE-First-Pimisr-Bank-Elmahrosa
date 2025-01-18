@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package com.fpbe.proto.account;
+
+import "google/protobuf/timestamp.proto";  // v3.0.0
+import "google/protobuf/empty.proto";      // v3.0.0
+
+option java_multiple_files = true;
+option java_package = "com.fpbe.proto.account";
+option java_outer_classname = "AccountProto";
+
+// Account represents the core account entity with comprehensive tracking and validation
+message Account {
+    string id = 1;                                 // Unique account identifier
+    string user_id = 2;                           // Associated user identifier
+    string account_type = 3;                      // Type of account (e.g., SAVINGS, CHECKING)
+    double balance = 4;                           // Current account balance
+    string currency = 5;                          // ISO 4217 currency code
+    string status = 6;                            // Account status (e.g., ACTIVE, SUSPENDED)
+    google.protobuf.Timestamp created_at = 7;     // Account creation timestamp
+    google.protobuf.Timestamp updated_at = 8;     // Last update timestamp
+    string last_modified_by = 9;                  // User/system that last modified the account
+    string version = 10;                          // Optimistic locking version
+}
+
+// CreateAccountRequest contains all necessary fields for account creation
+message CreateAccountRequest {
+    string user_id = 1;                           // User identifier for account owner
+    string account_type = 2;                      // Requested account type
+    string currency = 3;                          // Requested currency code
+    map<string, string> metadata = 4;             // Additional account creation metadata
+}
+
+// GetAccountRequest for retrieving specific account details
+message GetAccountRequest {
+    string account_id = 1;                        // Account identifier to retrieve
+    bool include_history = 2;                     // Flag to include account history
+}
+
+// GetUserAccountsRequest for retrieving all accounts for a user with pagination
+message GetUserAccountsRequest {
+    string user_id = 1;                           // User identifier
+    int32 page_size = 2;                          // Number of accounts per page
+    string page_token = 3;                        // Token for pagination
+    repeated string account_types = 4;            // Optional filter by account types
+}
+
+// GetUserAccountsResponse containing paginated account results
+message GetUserAccountsResponse {
+    repeated Account accounts = 1;                // List of accounts
+    string next_page_token = 2;                   // Token for next page
+    int32 total_count = 3;                        // Total number of accounts
+}
+
+// UpdateAccountStatusRequest for account status modifications
+message UpdateAccountStatusRequest {
+    string account_id = 1;                        // Account identifier
+    string status = 2;                            // New status value
+    string reason = 3;                            // Reason for status change
+    string comment = 4;                           // Additional comments
+    map<string, string> metadata = 5;             // Additional status update metadata
+}
+
+// AccountService provides comprehensive account management operations
+service AccountService {
+    // CreateAccount creates a new account with validation
+    rpc CreateAccount(CreateAccountRequest) returns (Account) {}
+
+    // GetAccount retrieves account details by ID
+    rpc GetAccount(GetAccountRequest) returns (Account) {}
+
+    // GetUserAccounts retrieves all accounts for a user with pagination
+    rpc GetUserAccounts(GetUserAccountsRequest) returns (GetUserAccountsResponse) {}
+
+    // UpdateAccountStatus modifies account status with audit trail
+    rpc UpdateAccountStatus(UpdateAccountStatusRequest) returns (Account) {}
+}
