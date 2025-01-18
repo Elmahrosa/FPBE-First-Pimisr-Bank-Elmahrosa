@@ -1,0 +1,209 @@
+{{/* AlertManager Helm Template for FPBE Mobile Banking System */}}
+{{/* Version: 0.25.0 */}}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: fpbe-monitoring
+    component: alertmanager
+data:
+  alertmanager.yml: |-
+    global:
+      resolve_timeout: {{ .Values.alertmanager.config.global.resolve_timeout }}
+      smtp_smarthost: {{ .Values.alertmanager.config.global.smtp_smarthost }}
+      smtp_from: {{ .Values.alertmanager.config.global.smtp_from }}
+      smtp_auth_username: {{ .Values.alertmanager.config.global.smtp_auth_username }}
+      smtp_auth_password: {{ .Values.alertmanager.config.global.smtp_auth_password }}
+
+    route:
+      group_by: {{ .Values.alertmanager.config.route.group_by | toYaml | nindent 6 }}
+      group_wait: {{ .Values.alertmanager.config.route.group_wait }}
+      group_interval: {{ .Values.alertmanager.config.route.group_interval }}
+      repeat_interval: {{ .Values.alertmanager.config.route.repeat_interval }}
+      receiver: {{ .Values.alertmanager.config.route.receiver }}
+      routes:
+        {{- range .Values.alertmanager.config.route.routes }}
+        - match:
+            {{- .match | toYaml | nindent 12 }}
+          receiver: {{ .receiver }}
+        {{- end }}
+
+    receivers:
+      {{- range .Values.alertmanager.config.receivers }}
+      - name: {{ .name }}
+        {{- if .email_configs }}
+        email_configs:
+          {{- .email_configs | toYaml | nindent 10 }}
+        {{- end }}
+        {{- if .pagerduty_configs }}
+        pagerduty_configs:
+          {{- .pagerduty_configs | toYaml | nindent 10 }}
+        {{- end }}
+        {{- if .slack_configs }}
+        slack_configs:
+          {{- .slack_configs | toYaml | nindent 10 }}
+        {{- end }}
+      {{- end }}
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: alertmanager
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: fpbe-monitoring
+    component: alertmanager
+spec:
+  replicas: 2
+  serviceName: alertmanager
+  selector:
+    matchLabels:
+      app: fpbe-monitoring
+      component: alertmanager
+  template:
+    metadata:
+      labels:
+        app: fpbe-monitoring
+        component: alertmanager
+    spec:
+      serviceAccountName: {{ .Values.global.serviceAccount }}
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 65534
+        runAsNonRoot: true
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.25.0
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
+            - --cluster.listen-address=0.0.0.0:9094
+            - --cluster.peer=alertmanager-0.alertmanager:9094
+            - --cluster.peer=alertmanager-1.alertmanager:9094
+            - --web.external-url=https://alertmanager.fpbe.com
+          ports:
+            - name: http
+              containerPort: 9093
+              protocol: TCP
+            - name: cluster
+              containerPort: 9094
+              protocol: TCP
+          resources:
+            requests:
+              cpu: {{ .Values.alertmanager.resources.requests.cpu }}
+              memory: {{ .Values.alertmanager.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.alertmanager.resources.limits.cpu }}
+              memory: {{ .Values.alertmanager.resources.limits.memory }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+            - name: storage
+              mountPath: /alertmanager
+            - name: tls
+              mountPath: /etc/alertmanager/certs
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: alertmanager-config
+        - name: tls
+          secret:
+            secretName: alertmanager-tls
+            defaultMode: 0400
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.global.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.alertmanager.persistence.size }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: fpbe-monitoring
+    component: alertmanager
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 9093
+      targetPort: http
+      protocol: TCP
+    - name: cluster
+      port: 9094
+      targetPort: cluster
+      protocol: TCP
+  selector:
+    app: fpbe-monitoring
+    component: alertmanager
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: alertmanager
+  namespace: {{ .Values.global.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: fpbe-monitoring
+      component: alertmanager
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 9093
+        - protocol: TCP
+          port: 9094
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 25
+        - protocol: TCP
+          port: 587
+        - protocol: TCP
+          port: 443
