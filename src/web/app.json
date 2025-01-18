@@ -1,0 +1,78 @@
+{
+  "expo": {
+    "name": "FPBE Mobile Banking",
+    "displayName": "FPBE Banking",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/web/src/assets/images/logo.png",
+    "splash": {
+      "image": "./src/web/src/assets/images/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A8A"
+    },
+    "ios": {
+      "bundleIdentifier": "com.fpbe.banking",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "requireFullScreen": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allow FPBE Banking to use Face ID for secure authentication",
+        "NSCameraUsageDescription": "Allow FPBE Banking to use camera for QR code scanning",
+        "NSLocationWhenInUseUsageDescription": "Allow FPBE Banking to use your location for finding nearby ATMs and branches",
+        "UIBackgroundModes": [
+          "remote-notification",
+          "fetch"
+        ],
+        "UIRequiresPersistentWiFi": true,
+        "UIStatusBarStyle": "lightContent"
+      },
+      "config": {
+        "usesNonExemptEncryption": true
+      }
+    },
+    "android": {
+      "package": "com.fpbe.banking",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./src/web/src/assets/images/logo.png",
+        "backgroundColor": "#1E3A8A"
+      },
+      "permissions": [
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_NETWORK_STATE",
+        "INTERNET"
+      ],
+      "allowBackup": false,
+      "googleServicesFile": "./google-services.json"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "assetBundlePatterns": [
+      "src/web/src/assets/fonts/*",
+      "src/web/src/assets/icons/*",
+      "src/web/src/assets/images/*"
+    ],
+    "plugins": [
+      "react-native-biometrics",
+      "react-native-encrypted-storage",
+      "react-native-device-info",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      "react-native-geolocation-service"
+    ],
+    "notification": {
+      "icon": "./src/web/src/assets/images/notification-icon.png",
+      "color": "#1E3A8A",
+      "androidMode": "collapse",
+      "androidCollapsedTitle": "#{unread_notifications} new notifications"
+    }
+  }
+}
