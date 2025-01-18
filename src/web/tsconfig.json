@@ -1,0 +1,80 @@
+{
+  "compilerOptions": {
+    // ECMAScript target version
+    "target": "es2020",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    
+    // React Native specific configuration
+    "jsx": "react-native",
+    "moduleResolution": "node",
+    
+    // JavaScript support
+    "allowJs": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    
+    // Strict type checking
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    
+    // Module resolution configuration
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    
+    // Source map and incremental compilation
+    "sourceMap": true,
+    "incremental": true,
+    
+    // Base URL and path aliases for clean imports
+    "baseUrl": "src",
+    "paths": {
+      "@components/*": ["components/*"],
+      "@screens/*": ["screens/*"],
+      "@navigation/*": ["navigation/*"],
+      "@store/*": ["store/*"],
+      "@services/*": ["services/*"],
+      "@hooks/*": ["hooks/*"],
+      "@utils/*": ["utils/*"],
+      "@api/*": ["api/*"],
+      "@assets/*": ["assets/*"],
+      "@constants/*": ["constants/*"],
+      "@types/*": ["types/*"],
+      "@features/*": ["features/*"],
+      "@security/*": ["security/*"],
+      "@pi-network/*": ["pi-network/*"],
+      "@banking/*": ["banking/*"]
+    },
+    
+    // Type definitions
+    "types": [
+      "react-native",
+      "jest",
+      "node"
+    ]
+  },
+  
+  // Files to include in compilation
+  "include": [
+    "src/**/*",
+    "tests/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+  
+  // Files/folders to exclude from compilation
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.ts",
+    "android",
+    "ios",
+    "build",
+    "dist"
+  ]
+}
