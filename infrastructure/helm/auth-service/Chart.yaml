@@ -1,0 +1,46 @@
+apiVersion: v2
+name: auth-service
+description: Secure authentication microservice for FPBE mobile banking application with multi-factor authentication support and banking compliance features
+type: application
+version: 1.0.0
+appVersion: 1.0.0
+kubeVersion: ">=1.21.0"
+
+maintainers:
+  - name: FPBE DevOps Team
+    email: devops@fpbe.com
+    url: https://github.com/fpbe/mobile-banking
+
+dependencies:
+  - name: common
+    version: 1.0.0
+    repository: file://../common
+    condition: common.enabled
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+    tags:
+      - session-store
+
+keywords:
+  - authentication
+  - banking
+  - security
+  - microservice
+  - multi-factor-auth
+  - biometric
+  - banking-compliance
+
+home: https://github.com/fpbe/mobile-banking
+sources:
+  - https://github.com/fpbe/mobile-banking/tree/main/src/backend/auth-service
+
+annotations:
+  artifacthub.io/changes: "Initial release of auth-service chart with security enhancements"
+  artifacthub.io/containsSecurityUpdates: "true"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/license: Apache-2.0
+  security.fpbe.com/compliance-verified: "true"
+  security.fpbe.com/last-audit: "2023-10-01"
+  security.fpbe.com/hsm-enabled: "true"
