@@ -1,0 +1,101 @@
+---
+# Ansible inventory configuration for FPBE mobile banking system
+# ansible-core version: 2.15+
+
+all:
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    ansible_python_interpreter: '/usr/bin/python3'
+
+production:
+  children:
+    aws_production:
+    gcp_production:
+    on_premises:
+  vars:
+    env: production
+    monitoring_enabled: true
+    backup_enabled: true
+    compliance_tracking: true
+    ha_enabled: true
+    dr_enabled: true
+    encryption_enabled: true
+
+aws_production:
+  hosts:
+    aws_eks_nodes:
+    aws_rds:
+    aws_elasticache:
+    aws_documentdb:
+  vars:
+    cloud_provider: aws
+    region: us-east-1
+    availability_zones: ['us-east-1a', 'us-east-1b', 'us-east-1c']
+    ansible_user: ec2-user
+    ansible_ssh_private_key_file: '~/.ssh/fpbe-aws-key.pem'
+    backup_retention_days: 30
+    rds_multi_az: true
+    eks_version: '1.27'
+    elasticache_cluster_mode: true
+
+gcp_production:
+  hosts:
+    gcp_gke_nodes:
+    gcp_cloud_sql:
+    gcp_memorystore:
+  vars:
+    cloud_provider: gcp
+    region: us-central1
+    zones: ['us-central1-a', 'us-central1-b', 'us-central1-c']
+    ansible_user: gcp-user
+    ansible_ssh_private_key_file: '~/.ssh/fpbe-gcp-key.pem'
+    dr_backup_enabled: true
+    dr_rto_hours: 4
+    dr_rpo_minutes: 15
+    gke_version: '1.27'
+    cloud_sql_ha: true
+
+on_premises:
+  hosts:
+    core_banking:
+    hsm_servers:
+    compliance_systems:
+  vars:
+    location: datacenter
+    ansible_user: sysadmin
+    ansible_become: true
+    ansible_become_method: sudo
+    hsm_fips_mode: true
+    hsm_key_rotation_days: 90
+    compliance_audit_enabled: true
+    core_banking_ha: true
+
+monitoring:
+  hosts:
+    prometheus_servers:
+    grafana_servers:
+    alertmanager_servers:
+  vars:
+    monitoring_base_dir: /opt/fpbe/monitoring
+    alertmanager_port: 9093
+    grafana_port: 3000
+    prometheus_port: 9090
+    ha_replica_count: 3
+    metrics_retention_days: 90
+    alert_notification_channels: ['email', 'slack', 'pagerduty']
+    dashboard_auto_backup: true
+
+security:
+  hosts:
+    vault_servers:
+    waf_servers:
+    siem_servers:
+  vars:
+    vault_addr: https://vault.fpbe.internal:8200
+    waf_rules_path: /etc/modsecurity/rules/
+    siem_endpoint: https://siem.fpbe.internal
+    vault_ha_enabled: true
+    waf_auto_block: true
+    siem_retention_days: 365
+    security_scan_interval: '4h'
+    compliance_check_enabled: true
