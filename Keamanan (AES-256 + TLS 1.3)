@@ -1,0 +1,10 @@
+import CryptoJS from 'crypto-js';
+
+const encryptData = (data, secretKey) => {
+  return CryptoJS.AES.encrypt(JSON.stringify(data), secretKey).toString();
+};
+
+const decryptData = (cipherText, secretKey) => {
+  const bytes = CryptoJS.AES.decrypt(cipherText, secretKey);
+  return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+};
