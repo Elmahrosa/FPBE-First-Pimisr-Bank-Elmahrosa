@@ -1,0 +1,98 @@
+npm install @nestjs/common @nestjs/core @nestjs/config axios stellar-sdk stripe crypto-js
+
+
+import { Controller, Post, Body, Inject } from '@nestjs/common';
+import axios from 'axios';
+import * as StellarSdk from 'stellar-sdk';
+import * as CryptoJS from 'crypto-js';
+import { ConfigService } from '@nestjs/config';
+
+// Konfigurasi Stellar dan API Payment Gateway
+const PI_NETWORK_HORIZON = 'https://horizon.stellar.org';
+const STELLAR_ASSET = new StellarSdk.Asset('PiCoin', 'GBPI...'); // Ganti dengan Issuer Pi Coin
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+@Controller('payments')
+export class PaymentsController {
+  constructor(@Inject(ConfigService) private configService: ConfigService) {}
+
+  // Transaksi dengan Pi Coin (Stellar)
+  @Post('pi-coin')
+  async payWithPi(@Body() body) {
+    const { sender, recipient, amount } = body;
+    const server = new StellarSdk.Server(PI_NETWORK_HORIZON);
+    const sourceKeys = StellarSdk.Keypair.fromSecret(process.env.PI_SECRET_KEY);
+
+    try {
+      const account = await server.loadAccount(sender);
+      const transaction = new StellarSdk.TransactionBuilder(account, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase: StellarSdk.Networks.PUBLIC,
+      })
+        .addOperation(
+          StellarSdk.Operation.payment({
+            destination: recipient,
+            asset: STELLAR_ASSET,
+            amount: amount.toString(),
+          })
+        )
+        .setTimeout(30)
+        .build();
+
+      transaction.sign(sourceKeys);
+      const result = await server.submitTransaction(transaction);
+      return { success: true, tx_hash: result.hash };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Transaksi dengan Visa/Mastercard
+  @Post('visa-mastercard')
+  async payWithCard(@Body() body) {
+    const { cardNumber, expMonth, expYear, cvv, amount, currency } = body;
+
+    try {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount * 100, // Konversi ke sen
+        currency,
+        payment_method_data: {
+          type: 'card',
+          card: {
+            number: cardNumber,
+            exp_month: expMonth,
+            exp_year: expYear,
+            cvc: cvv,
+          },
+        },
+        confirm: true,
+      });
+
+      return { success: true, transaction_id: paymentIntent.id };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Konversi otomatis Pi Coin ke USD atau stablecoin
+  @Post('convert-pi-to-usd')
+  async convertPiToUSD(@Body() body) {
+    const { piAmount } = body;
+    const exchangeRate = await this.getPiExchangeRate();
+
+    return {
+      success: true,
+      piAmount,
+      usdValue: piAmount * exchangeRate,
+    };
+  }
+
+  private async getPiExchangeRate() {
+    try {
+      const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=pi-network&vs_currencies=usd');
+      return response.data['pi-network'].usd;
+    } catch {
+      return 314.159; // Default nilai jika API gagal
+    }
+  }
+}
