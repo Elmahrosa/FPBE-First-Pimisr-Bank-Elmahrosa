@@ -1,0 +1,28 @@
+import React, { useEffect, useState } from "react";
+
+function AMLAlerts() {
+  const [alerts, setAlerts] = useState([]);
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:4000");
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setAlerts((prevAlerts) => [data, ...prevAlerts]);
+    };
+
+    return () => ws.close();
+  }, []);
+
+  return (
+    <div>
+      <h2>🚨 AML Alerts</h2>
+      <ul>
+        {alerts.map((alert, index) => (
+          <li key={index}>{alert.message} - {JSON.stringify(alert.transaction)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default AMLAlerts;
