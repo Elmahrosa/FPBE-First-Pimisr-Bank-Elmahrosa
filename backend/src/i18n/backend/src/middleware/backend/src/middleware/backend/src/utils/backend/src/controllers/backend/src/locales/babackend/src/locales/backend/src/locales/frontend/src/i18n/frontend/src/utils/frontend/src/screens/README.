@@ -1,0 +1,10 @@
+import moment from 'moment';
+import 'moment/locale/id';
+
+const formattedDate = moment().locale(i18n.language).format('LL');
+
+const currencyFormatter = new Intl.NumberFormat(i18n.language, {
+  style: 'currency',
+  currency: 'USD'
+});
+console.log(currencyFormatter.format(1000)); // $1,000.00 atau Rp 1.000.000
