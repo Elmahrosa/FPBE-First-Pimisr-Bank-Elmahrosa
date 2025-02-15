@@ -1,0 +1,44 @@
+import React, { useState } from "react";
+
+function DIDWallet() {
+  const [did, setDid] = useState("");
+  const [metadata, setMetadata] = useState("");
+  const [resolvedData, setResolvedData] = useState(null);
+
+  const registerDID = async () => {
+    const response = await fetch("http://localhost:3001/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ did, metadata }),
+    });
+    const data = await response.json();
+    alert(`DID Registered: ${data.txHash}`);
+  };
+
+  const resolveDID = async () => {
+    const response = await fetch(`http://localhost:3001/resolve/${did}`);
+    const data = await response.json();
+    setResolvedData(data);
+  };
+
+  return (
+    <div>
+      <h2>🆔 Decentralized Identity Wallet</h2>
+      <input placeholder="DID" value={did} onChange={(e) => setDid(e.target.value)} />
+      <input placeholder="Metadata" value={metadata} onChange={(e) => setMetadata(e.target.value)} />
+      <button onClick={registerDID}>Register DID</button>
+      <button onClick={resolveDID}>Resolve DID</button>
+
+      {resolvedData && (
+        <div>
+          <h3>Resolved DID:</h3>
+          <p>Owner: {resolvedData.owner}</p>
+          <p>Metadata: {resolvedData.metadata}</p>
+          <p>Revoked: {resolvedData.revoked ? "Yes" : "No"}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default DIDWallet;
