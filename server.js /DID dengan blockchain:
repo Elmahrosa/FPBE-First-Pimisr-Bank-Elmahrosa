@@ -1,0 +1,40 @@
+const express = require("express");
+const { ethers } = require("ethers");
+const cors = require("cors");
+const dotenv = require("dotenv");
+
+dotenv.config();
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// Konfigurasi Blockchain
+const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const didRegistryABI = require("./DIDRegistryABI.json"); // ABI dari smart contract
+const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, didRegistryABI, wallet);
+
+// Register DID
+app.post("/register", async (req, res) => {
+  const { did, metadata } = req.body;
+  try {
+    const tx = await contract.registerDID(did, metadata);
+    await tx.wait();
+    res.json({ success: true, txHash: tx.hash });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Resolve DID
+app.get("/resolve/:did", async (req, res) => {
+  try {
+    const [owner, metadata, revoked] = await contract.resolveDID(req.params.did);
+    res.json({ owner, metadata, revoked });
+  } catch (error) {
+    res.status(404).json({ error: "DID not found" });
+  }
+});
+
+// Jalankan server
+app.listen(3001, () => console.log("✅ DID API running on port 3001"));
