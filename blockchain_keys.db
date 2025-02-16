@@ -1,0 +1,158 @@
+import hashlib
+import time
+import sqlite3
+from typing import List, Set, Dict
+from ecdsa import SigningKey, VerifyingKey, SECP256k1
+
+# Database Setup
+def initialize_database():
+    connection = sqlite3.connect("blockchain_keys.db")
+    cursor = connection.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS public_keys (
+            node_id TEXT PRIMARY KEY,
+            public_key TEXT
+        )
+    """)
+    connection.commit()
+    connection.close()
+
+def save_public_key(node_id: str, public_key: VerifyingKey):
+    connection = sqlite3.connect("blockchain_keys.db")
+    cursor = connection.cursor()
+    cursor.execute("""
+        INSERT OR REPLACE INTO public_keys (node_id, public_key) 
+        VALUES (?, ?)
+    """, (node_id, public_key.to_pem().decode()))
+    connection.commit()
+    connection.close()
+
+def get_public_key(node_id: str) -> VerifyingKey:
+    connection = sqlite3.connect("blockchain_keys.db")
+    cursor = connection.cursor()
+    cursor.execute("SELECT public_key FROM public_keys WHERE node_id = ?", (node_id,))
+    result = cursor.fetchone()
+    connection.close()
+    
+    if result:
+        return VerifyingKey.from_pem(result[0].encode())
+    raise ValueError(f"Public key for node {node_id} not found.")
+
+# Blockchain Classes
+class Block:
+    def __init__(self, index: int, timestamp: str, data: str, previous_hash: str):
+        self.index = index
+        self.timestamp = timestamp
+        self.data = data
+        self.previous_hash = previous_hash
+        self.hash = self.calculate_hash()
+        self.signature = None  
+        self.proposer_id = None  
+
+    def calculate_hash(self) -> str:
+        return hashlib.sha256(f"{self.index}{self.timestamp}{self.data}{self.previous_hash}".encode()).hexdigest()
+
+    def sign_block(self, private_key: SigningKey, proposer_id: str):
+        self.signature = private_key.sign(self.hash.encode())
+        self.proposer_id = proposer_id
+
+    def verify_signature(self) -> bool:
+        if not self.signature or not self.proposer_id:
+            return False
+        public_key = get_public_key(self.proposer_id)
+        return public_key.verify(self.signature, self.hash.encode())
+
+class Node:
+    def __init__(self, node_id: str):
+        self.node_id = node_id
+        self.private_key = SigningKey.generate(curve=SECP256k1)
+        self.public_key = self.private_key.get_verifying_key()
+        self.neighbors: Set['Node'] = set()
+        self.blockchain: List[Block] = [self.create_genesis_block()]
+
+        save_public_key(self.node_id, self.public_key)
+
+    def create_genesis_block(self) -> Block:
+        genesis_block = Block(0, str(time.time()), "Genesis Block", "0")
+        genesis_block.sign_block(self.private_key, self.node_id)
+        return genesis_block
+
+    def get_latest_block(self) -> Block:
+        return self.blockchain[-1]
+
+    def propose_block(self, data: str) -> Block:
+        new_block = Block(
+            len(self.blockchain),
+            str(time.time()),
+            data,
+            self.get_latest_block().hash
+        )
+        new_block.sign_block(self.private_key, self.node_id)
+        return new_block
+
+    def validate_block(self, block: Block) -> bool:
+        latest_block = self.get_latest_block()
+        if block.previous_hash != latest_block.hash:
+            return False
+        if block.hash != block.calculate_hash():
+            return False
+        return block.verify_signature()
+
+    def add_block(self, block: Block):
+        if self.validate_block(block):
+            self.blockchain.append(block)
+
+class SCPConsensus:
+    def __init__(self):
+        self.network: Dict[str, Node] = {}
+
+    def register_node(self, node: Node):
+        self.network[node.node_id] = node
+
+    def add_connection(self, node_a: str, node_b: str):
+        self.network[node_a].neighbors.add(self.network[node_b])
+        self.network[node_b].neighbors.add(self.network[node_a])
+
+    def federated_voting(self, proposed_block: Block, proposing_node: str) -> bool:
+        proposing_node_obj = self.network[proposing_node]
+        votes = sum(1 for neighbor in proposing_node_obj.neighbors if neighbor.validate_block(proposed_block))
+
+        required_votes = max(1, len(proposing_node_obj.neighbors) // 2 + 1)
+        return votes >= required_votes
+
+    def propose_and_commit(self, node_id: str, data: str):
+        proposing_node = self.network[node_id]
+        proposed_block = proposing_node.propose_block(data)
+
+        if self.federated_voting(proposed_block, node_id):
+            print(f"Block accepted by majority: {proposed_block.hash}")
+            for node in self.network.values():
+                node.add_block(proposed_block)
+        else:
+            print("Block rejected by consensus.")
+
+# Example Usage
+if __name__ == "__main__":
+    initialize_database()
+
+    consensus = SCPConsensus()
+
+    # Create and register nodes
+    nodes = {id_: Node(id_) for id_ in ["Node_A", "Node_B", "Node_C", "Node_D"]}
+    for node in nodes.values():
+        consensus.register_node(node)
+
+    # Establish connections
+    connections = [("Node_A", "Node_B"), ("Node_A", "Node_C"), ("Node_B", "Node_C"), ("Node_C", "Node_D")]
+    for a, b in connections:
+        consensus.add_connection(a, b)
+
+    # Propose and commit blocks
+    consensus.propose_and_commit("Node_A", "Block 1 Data")
+    consensus.propose_and_commit("Node_B", "Block 2 Data")
+
+    # Print blockchain of each node
+    for node_id, node in consensus.network.items():
+        print(f"\nBlockchain for {node_id}:")
+        for block in node.blockchain:
+            print(f"Index: {block.index}, Hash: {block.hash}, Data: {block.data}, Signature: {block.signature is not None}")
