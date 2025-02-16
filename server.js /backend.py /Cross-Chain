@@ -1,0 +1,61 @@
+from fastapi import FastAPI, HTTPException
+from web3 import Web3
+from stellar_sdk import Server, Keypair, TransactionBuilder, Network
+import requests
+import os
+import json
+import random
+
+app = FastAPI()
+
+# 🔹 Ethereum (EVM)
+ETH_RPC_URL = "https://mainnet.infura.io/v3/YOUR_INFURA_KEY"
+w3 = Web3(Web3.HTTPProvider(ETH_RPC_URL))
+
+# 🔹 Stellar
+stellar_server = Server("https://horizon.stellar.org")
+
+# 🔹 Bitcoin (BTC)
+BTC_NODE_URL = "http://user:password@127.0.0.1:8332"
+
+# 🔹 Pi Network (Custom Blockchain)
+PI_RPC_URL = "https://api.pi-blockchain.com"
+
+# 🔹 Generate Random Atomic Swap Secret
+def generate_secret():
+    return os.urandom(32).hex()
+
+# 🔹 Cross-Chain Swap
+@app.post("/atomic_swap/")
+async def atomic_swap(source_chain: str, dest_chain: str, amount: float, sender: str, receiver: str):
+    secret = generate_secret()
+    
+    if source_chain == "Ethereum" and dest_chain == "Stellar":
+        tx = w3.eth.send_transaction({
+            "to": receiver,
+            "value": w3.toWei(amount, "ether"),
+            "gas": 21000,
+            "gasPrice": w3.eth.gas_price
+        })
+        return {"message": "Swap initiated!", "tx_hash": tx.hex(), "secret": secret}
+
+    elif source_chain == "Stellar" and dest_chain == "Ethereum":
+        source_keypair = Keypair.from_secret(os.getenv("STELLAR_SECRET"))
+        destination = receiver
+        base_fee = stellar_server.fetch_base_fee()
+        account = stellar_server.load_account(source_keypair.public_key)
+        
+        transaction = TransactionBuilder(
+            source_account=account,
+            network_passphrase=Network.PUBLIC_NETWORK_PASSPHRASE,
+            base_fee=base_fee
+        ).append_payment_op(
+            destination=destination, asset_code="XLM", amount=str(amount)
+        ).build()
+        
+        transaction.sign(source_keypair)
+        response = stellar_server.submit_transaction(transaction)
+        return {"message": "Swap initiated!", "tx_hash": response["hash"], "secret": secret}
+
+    else:
+        return {"error": "Unsupported chain pairing"}
