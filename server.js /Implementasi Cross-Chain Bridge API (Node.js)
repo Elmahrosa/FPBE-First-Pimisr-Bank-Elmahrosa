@@ -1,0 +1,46 @@
+const express = require("express");
+const { ethers } = require("ethers");
+const StellarSdk = require("stellar-sdk");
+const bitcoin = require("bitcoinjs-lib");
+const axios = require("axios");
+
+require("dotenv").config();
+const app = express();
+app.use(express.json());
+
+// 🔹 Ethereum Provider
+const provider = new ethers.providers.JsonRpcProvider(process.env.ETH_RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const eth_contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, require("./AtomicSwapABI.json"), wallet);
+
+// 🔹 Stellar Server
+const stellarServer = new StellarSdk.Server("https://horizon.stellar.org");
+
+// 🔹 Bitcoin RPC
+const btcRpc = axios.create({
+    baseURL: process.env.BTC_RPC_URL,
+    auth: { username: process.env.BTC_RPC_USER, password: process.env.BTC_RPC_PASS }
+});
+
+// 🔹 Register Bridge Transfer
+app.post("/bridge_transfer", async (req, res) => {
+    const { sourceChain, destChain, amount, sender, receiver } = req.body;
+
+    if (sourceChain === "Ethereum" && destChain === "Stellar") {
+        const tx = await eth_contract.initiateSwap(ethers.utils.id("swap123"), receiver, { value: ethers.utils.parseEther(amount) });
+        await tx.wait();
+        return res.json({ message: "Bridge initiated", txHash: tx.hash });
+
+    } else if (sourceChain === "Stellar" && destChain === "Bitcoin") {
+        const sourceAccount = await stellarServer.loadAccount(sender);
+        const transaction = new StellarSdk.TransactionBuilder(sourceAccount, { fee: 100, networkPassphrase: StellarSdk.Networks.PUBLIC })
+            .addOperation(StellarSdk.Operation.payment({ destination: receiver, asset: StellarSdk.Asset.native(), amount }))
+            .setTimeout(180)
+            .build();
+
+        transaction.sign(StellarSdk.Keypair.fromSecret(process.env.STELLAR_SECRET));
+        const response = await stellarServer.submitTransaction(transaction);
+        return res.json({ message: "Bridge initiated", txHash: response.hash });
+
+    } else {
+        return res.status(400).json({ error: "
