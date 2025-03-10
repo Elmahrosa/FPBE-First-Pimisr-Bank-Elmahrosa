@@ -24,7 +24,7 @@ Thank you for considering contributing to the FPBE Mobile Banking Application! W
    ```
 3. **Set Up the Project**: Navigate to the project directory and install the necessary dependencies:
    ```bash
-   cd FPBE-First-Pimisr-Bank-Elmahrosa--ez2igr/fpbe-mobile-banking
+   cd FPBE-First-Pimisr-Bank-Elmahrosa--ez2igr
    npm install
    ```
 
