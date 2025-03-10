@@ -1,3 +1,9 @@
+  [![Certified Financial Planner](https://img.shields.io/badge/CFP-Certified%20Financial%20Planner-0072B1?style=for-the-badge)](https://www.cfp.net/)
+    [![Chartered Financial Analyst](https://img.shields.io/badge/CFA-Chartered%20Financial%20Analyst-FF6F20?style=for-the-badge)](https://www.cfainstitute.org/)
+    [![Certified Public Accountant](https://img.shields.io/badge/CPA-Certified%20Public%20Accountant-4CAF50?style=for-the-badge)](https://www.aicpa.org/)
+  [![Financial Risk Manager](https://img.shields.io/badge/FRM-Financial%20Risk%20Manager-FF5733?style=for-the-badge)](https://www.garp.org/)
+  [![Certified Management Accountant](https://img.shields.io/badge/CMA-Certified%20Management%20Accountant-0072B1?style=for-the-badge)](https://www.imanet.org/)
+
 # First PIMISR Bank Elmahrosa (FPBE) Mobile Banking Application
 
 A groundbreaking mobile banking platform that integrates traditional banking services with Pi Network cryptocurrency capabilities, providing a secure, scalable, and compliant financial services solution.
