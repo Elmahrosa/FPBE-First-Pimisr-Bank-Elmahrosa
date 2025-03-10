@@ -3,6 +3,16 @@
     [![Certified Public Accountant](https://img.shields.io/badge/CPA-Certified%20Public%20Accountant-4CAF50?style=for-the-badge)](https://www.aicpa.org/)
   [![Financial Risk Manager](https://img.shields.io/badge/FRM-Financial%20Risk%20Manager-FF5733?style=for-the-badge)](https://www.garp.org/)
   [![Certified Management Accountant](https://img.shields.io/badge/CMA-Certified%20Management%20Accountant-0072B1?style=for-the-badge)](https://www.imanet.org/)
+  [![Certified Blockchain Expert](https://img.shields.io/badge/Blockchain%20Council-Certified%20Blockchain%20Expert-4CAF50?style=for-the-badge)](https://www.blockchain-council.org/) 
+  [![Stanford Blockchain Certificate](https://img.shields.io/badge/Stanford%20University-Blockchain%20Certificate-FF5733?style=for-the-badge)](https://online.stanford.edu/courses/sohs-ystanford-blockchain)
+  [![Certified Blockchain Developer](https://img.shields.io/badge/Blockchain%20Council-Certified%20Blockchain%20Developer-0072B1?style=for-the-badge)](https://www.blockchain-council.org/)
+  [![Certified Ethereum Developer](https://img.shields.io/badge/Blockchain%20Council-Certified%20Ethereum%20Developer-FF6F20?style=for-the-badge)](https://www.blockchain-council.org/)
+  [![Certified Hyperledger Developer](https://img.shields.io/badge/Hyperledger-Certified%20Hyperledger%20Developer-4CAF50?style=for-the-badge)](https://www.hyperledger.org/)
+  [![Blockchain Fundamentals Certificate](https://img.shields.io/badge/U.C.%20Berkeley-Blockchain%20Fundamentals%20Certificate-FF5733?style=for-the-badge)](https://extension.berkeley.edu/)
+  [![Certified Blockchain Architect](https://img.shields.io/badge/Blockchain%20Council-Certified%20Blockchain%20Architect-0072B1?style=for-the-badge)](https://www.blockchain-council.org/)
+  [![Blockchain for Business Certificate](https://img.shields.io/badge/edX-Blockchain%20for%20Business-FF6F20?style=for-the-badge)](https://www.edx.org/)
+  [![Certified Bitcoin Professional](https://img.shields.io/badge/Crypto%20Currency%20Certification-Certified%20Bitcoin%20Professional-4CAF50?style=for-the-badge)](https://www.cryptocurrencycertification.com/)
+  [![Certified Blockchain Security Professional](https://img.shields.io/badge/Blockchain%20Council-Certified%20Blockchain%20Security%20Professional-FF5733?style=for-the-badge)](https://www.blockchain-council.org/)
 
 # First PIMISR Bank Elmahrosa (FPBE) Mobile Banking Application
 
