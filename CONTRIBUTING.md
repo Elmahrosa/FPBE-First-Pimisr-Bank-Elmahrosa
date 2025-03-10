@@ -36,7 +36,7 @@ We expect all contributors to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md
 
 ### Reporting Issues
 
-If you encounter any bugs or issues, please report them by creating a new issue in the [Issues](https://github.com/your-username/fpbe-mobile-banking/issues) section. Provide as much detail as possible, including:
+If you encounter any bugs or issues, please report them by creating a new issue in the [Issues](https://github.com/Aymanseif/FPBE-First-Pimisr-Bank-Elmahrosa--ez2igr/issues) section. Provide as much detail as possible, including:
 - A clear description of the issue
 - Steps to reproduce the issue
 - Any relevant screenshots or error messages
@@ -93,4 +93,3 @@ By contributing to this project, you agree that your contributions will be licen
 ---
 
 Thank you for your contributions! Together, we can make the FPBE Mobile Banking Application even better.
-```
