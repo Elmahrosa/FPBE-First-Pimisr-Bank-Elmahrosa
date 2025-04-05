@@ -11,7 +11,7 @@ src/backend/pi-service/** @fpbe/blockchain-team @fpbe/backend-team @fpbe/securit
 # Transaction processing requires security review for PCI DSS compliance
 src/backend/transaction-service/** @fpbe/backend-team @fpbe/security-team
 
-# Frontend application ownership
+# Frontend application ownership and security review
 src/web/** @fpbe/frontend-team
 src/web/**/security/** @fpbe/frontend-team @fpbe/security-team
 
