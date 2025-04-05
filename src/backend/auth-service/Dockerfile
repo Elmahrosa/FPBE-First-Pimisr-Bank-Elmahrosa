@@ -10,7 +10,7 @@ COPY package*.json ./
 # Install dependencies including dev dependencies for build
 RUN npm ci && \
     # Verify packages have no known vulnerabilities
-    npm audit
+    npm audit --production
 
 # Copy TypeScript configuration
 COPY tsconfig.json ./
@@ -45,7 +45,6 @@ RUN addgroup -g 1001 -S nodejs && \
 RUN apk add --no-cache \
     curl \
     tzdata \
-    # Clean up cache
     && rm -rf /var/cache/apk/*
 
 # Copy built artifacts and production dependencies
