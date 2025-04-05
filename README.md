@@ -1,3 +1,9 @@
+[![Central Bank of Egypt](https://img.shields.io/badge/CBE-Central%20Bank%20of%20Egypt-0072B1?style=for-the-badge)](https://www.cbe.org.eg)
+[![Dubai Financial Services Authority](https://img.shields.io/badge/DFSA-Dubai%20Financial%20Services%20Authority-0072B1?style=for-the-badge)](https://www.dfsa.ae)
+[![Saudi Arabian Monetary Authority](https://img.shields.io/badge/SAMA-Saudi%20Arabian%20Monetary%20Authority-0072B1?style=for-the-badge)](https://www.sama.gov.sa)
+[![Bahrain Central Bank](https://img.shields.io/badge/CBB-Central%20Bank%20of%20Bahrain-0072B1?style=for-the-badge)](https://www.cbb.gov.bh)
+[![Qatar Central Bank](https://img.shields.io/badge/QCB-Qatar%20Central%20Bank-0072B1?style=for-the-badge)](https://www.qcb.gov.qa)
+  
   [![Certified Financial Planner](https://img.shields.io/badge/CFP-Certified%20Financial%20Planner-0072B1?style=for-the-badge)](https://www.cfp.net/)
     [![Chartered Financial Analyst](https://img.shields.io/badge/CFA-Chartered%20Financial%20Analyst-FF6F20?style=for-the-badge)](https://www.cfainstitute.org/)
     [![Certified Public Accountant](https://img.shields.io/badge/CPA-Certified%20Public%20Accountant-4CAF50?style=for-the-badge)](https://www.aicpa.org/)
