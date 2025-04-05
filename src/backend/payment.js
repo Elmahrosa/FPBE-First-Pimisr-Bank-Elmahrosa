@@ -1,38 +1,64 @@
 const express = require('express');
 const stripe = require('stripe')('your_stripe_secret_key');
 const bodyParser = require('body-parser');
-const app = express();
+const plaid = require('plaid'); // Assuming you are using Plaid for bank integration
+const winston = require('winston'); // For logging
 
+const app = express();
 app.use(bodyParser.json());
 
+// Initialize Plaid client
+const plaidClient = new plaid.Client({
+    clientID: 'your_plaid_client_id',
+    secret: 'your_plaid_secret',
+    env: plaid.environments.development, // Change to 'production' in production
+});
+
+// Function to simulate Pi conversion
 const buyPi = async (fiatAmount) => {
-    // Simulated rate: 1 USD = 2 Pi
-    return fiatAmount * 2;
+    return fiatAmount * 2; // Simulated rate: 1 USD = 2 Pi
 };
 
-app.post('/buy-pi', async (req, res) => {
-    const { amount, currency, userPublicKey } = req.body;
+// Logger setup
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    transports: [
+        new winston.transports.File({ filename: 'error.log', level: 'error' }),
+        new winston.transports.Console(),
+    ],
+});
+
+// Endpoint to buy Pi with bank transfer
+app.post('/buy-pi-with-bank', async (req, res) => {
+    const { amount, currency, bankDetails } = req.body;
 
     // Validate input
-    if (!amount || !currency || !userPublicKey) {
+    if (!amount || !currency || !bankDetails) {
         return res.status(400).json({ error: 'Missing required fields.' });
     }
 
     try {
-        // Create a payment intent
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount,
-            currency,
-            payment_method_types: ['card'],
+        // Step 1: Create a bank transfer using Plaid
+        const transferResponse = await plaidClient.transfer.create({
+            // Replace with actual transfer parameters
+            amount: amount / 100, // Convert cents to dollars
+            currency: currency,
+            bankAccountId: bankDetails.bankAccountId, // Assuming bankDetails contains this
+            // Additional Plaid transfer parameters as needed
         });
 
-        const piAmount = await buyPi(amount / 100); // Convert cents to dollars
+        // Step 2: Calculate the amount of Pi to be credited
+        const piAmount = await buyPi(amount);
 
-        // Respond with the client secret and Pi amount
-        res.json({ clientSecret: paymentIntent.client_secret, piAmount });
+        // Log the successful transfer
+        logger.info(`Successfully transferred ${amount} ${currency} to buy ${piAmount} Pi. Transfer ID: ${transferResponse.id}`);
+
+        // Step 3: Respond with success and the amount of Pi purchased
+        res.json({ success: true, piAmount });
     } catch (error) {
-        console.error('Payment error:', error);
-        res.status(500).json({ error: 'Payment processing failed. Please try again later.' });
+        logger.error('Bank transfer error:', error);
+        res.status(500).json({ error: 'Bank transfer failed. Please try again later.' });
     }
 });
 
