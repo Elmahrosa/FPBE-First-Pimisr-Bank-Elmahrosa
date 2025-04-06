@@ -76,6 +76,8 @@
 [![CMMI Certified](https://img.shields.io/badge/CMMI-Certified-673ab7.svg)](https://cmmiinstitute.com/)
 [![Cyber Essentials Certified](https://img.shields.io/badge/Cyber%20Essentials-Certified-ff5722.svg)](https://www.cyberessentials.ncsc.gov.uk/)
 
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://github.com/Aymanseif/FPBE-First-Pimisr-Bank-Elmahrosa--ez2igr">Elmahrosa Bank</a> by <a rel="cc:attributionURL dct:creator" property="cc:attributionName" href="http://Lihat profil 𝔸𝕐𝕄𝔸ℕ 𝕊𝔼𝕀𝔽 di LinkedIn https://eg.linkedin.com/in/aymanseif?utm_source=share&utm_medium=member_mweb&utm_campaign=share_via&utm_content=profile">Ayman Seif</a> is licensed under <a href="https://creativecommons.org/licenses/by/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">Creative Commons Attribution 4.0 International<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""></a></p>
+
 # First PIMISR Bank Elmahrosa (FPBE) Mobile Banking Application
 
 A groundbreaking mobile banking platform that integrates traditional banking services with Pi Network cryptocurrency capabilities, providing a secure, scalable, and compliant financial services solution.
