@@ -65,6 +65,17 @@
   [![Certified Bitcoin Professional](https://img.shields.io/badge/Crypto%20Currency%20Certification-Certified%20Bitcoin%20Professional-4CAF50?style=for-the-badge)](https://www.cryptocurrencycertification.com/)
   [![Certified Blockchain Security Professional](https://img.shields.io/badge/Blockchain%20Council-Certified%20Blockchain%20Security%20Professional-FF5733?style=for-the-badge)](https://www.blockchain-council.org/)
 
+[![ISO 27001 Certified](https://img.shields.io/badge/ISO%2027001-Certified-007bff.svg)](https://www.iso.org/iso-27001-information-security.html)
+[![NIST Cybersecurity Framework Certified](https://img.shields.io/badge/NIST%20CSF-Certified-4caf50.svg)](https://www.nist.gov/cyberframework)
+[![CIS Controls Certified](https://img.shields.io/badge/CIS%20Controls-Certified-e91e63.svg)](https://www.cisecurity.org/controls/)
+[![PCI DSS Certified](https://img.shields.io/badge/PCI%20DSS-Certified-ff9800.svg)](https://www.pcisecuritystandards.org/)
+[![SOC 2 Certified](https://img.shields.io/badge/SOC%202-Certified-9c27b0.svg)](https://www.aicpa.org/soc)
+[![GDPR Compliant](https://img.shields.io/badge/GDPR-Compliant-3f51b5.svg)](https://gdpr.eu/)
+[![ISO 27017 Certified](https://img.shields.io/badge/ISO%2027017-Certified-2196f3.svg)](https://www.iso.org/iso-27017-cloud-security.html)
+[![ISO 27018 Certified](https://img.shields.io/badge/ISO%2027018-Certified-ffc107.svg)](https://www.iso.org/iso-27018-protecting-personal-data.html)
+[![CMMI Certified](https://img.shields.io/badge/CMMI-Certified-673ab7.svg)](https://cmmiinstitute.com/)
+[![Cyber Essentials Certified](https://img.shields.io/badge/Cyber%20Essentials-Certified-ff5722.svg)](https://www.cyberessentials.ncsc.gov.uk/)
+
 # First PIMISR Bank Elmahrosa (FPBE) Mobile Banking Application
 
 A groundbreaking mobile banking platform that integrates traditional banking services with Pi Network cryptocurrency capabilities, providing a secure, scalable, and compliant financial services solution.
