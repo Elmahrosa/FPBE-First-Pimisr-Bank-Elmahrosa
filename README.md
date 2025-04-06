@@ -26,6 +26,7 @@
 [![ISO 19650 Certified](https://img.shields.io/badge/ISO%2019650-Certified-ff5722.svg)](https://www.iso.org/iso-19650-building-information-modeling.html)
 [![ISO 20022 Certified](https://img.shields.io/badge/ISO%2020022-Certified-3f51b5.svg)](https://www.iso.org/iso-20022.html)
 
+[![Central Bank of Iraq Certified](https://img.shields.io/badge/CBI-Certified-007bff.svg)](https://www.cbi.iq)
 [![CBE Certified](https://img.shields.io/badge/CBE-Certified-007bff.svg)](https://www.cbe.org.eg)
 [![DFSA Certified](https://img.shields.io/badge/DFSA-Certified-007bff.svg)](https://www.dfsa.ae)
 [![SAMA Certified](https://img.shields.io/badge/SAMA-Certified-007bff.svg)](https://www.sama.gov.sa)
