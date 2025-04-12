@@ -1,0 +1,13 @@
+pi-app/
+├── backend/        # Node.js + Express API
+│   ├── server.js
+│   └── controllers/
+│       └── piController.js
+├── frontend/       # React App
+│   ├── src/
+│   │   ├── App.js
+│   │   ├── components/
+│   │   │   └── PiLogin.js
+│   │   │   └── PiPayment.js
+│   └── .env
+└── validation-key.txt
