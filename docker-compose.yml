@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Backend Node.js services
+  backend-api:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE_TYPE: node
+        SERVICE_NAME: api-gateway
+    container_name: fpbe-backend-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - db
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+  # Backend Java services
+  backend-account:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE_TYPE: java
+        SERVICE_NAME: account-service
+    container_name: fpbe-backend-account
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  backend-transaction:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE_TYPE: java
+        SERVICE_NAME: transaction-service
+    container_name: fpbe-backend-transaction
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  # PostgreSQL Database
+  db:
+    image: postgres:14
+    container_name: fpbe-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fpbe
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # React Native frontend Metro bundler (for development)
+  frontend:
+    build:
+      context: ./src/web
+      dockerfile: Dockerfile
+    container_name: fpbe-frontend
+    command: npm start
+    volumes:
+      - ./src/web:/app
+    ports:
+      - "8081:8081"
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
