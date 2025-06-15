@@ -1,0 +1,40 @@
+{
+  "name": "fpbe-first-pimisr-bank-elmahrosa",
+  "version": "2.0.0",
+  "private": true,
+  "description": "First Pimisr Bank Elmahrosa - Next-gen banking with Ethereum, voice encryption, and modern microservices.",
+  "author": "Aymanseif and contributors",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "bootstrap": "npm install && npm run build -ws",
+    "start": "echo 'Use workspace scripts to start individual services or apps.'",
+    "lint": "eslint . --ext .js,.ts,.tsx",
+    "test": "jest --runInBand",
+    "build": "tsc -b",
+    "clean": "rimraf dist coverage",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.11.30",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "ethers": "^6.10.0",
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
