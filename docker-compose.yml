@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Backend Node.js services
+  # Backend Node.js API Gateway
   backend-api:
     build:
       context: ./src/backend
@@ -19,7 +19,19 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-  # Backend Java services
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fpbe-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Backend Java Account Service
   backend-account:
     build:
       context: ./src/backend
@@ -33,7 +45,19 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fpbe-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
+  # Backend Java Transaction Service
   backend-transaction:
     build:
       context: ./src/backend
@@ -47,6 +71,17 @@ services:
     restart: unless-stopped
     depends_on:
       - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - fpbe-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # PostgreSQL Database
   db:
@@ -61,13 +96,71 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fpbe-net
 
-  # React Native frontend Metro bundler (for development)
-  frontend:
+  # Ethereum Microservice (Node.js)
+  ethereum-sdk:
+    build:
+      context: ./services/ethereum
+      dockerfile: Dockerfile
+    container_name: fpbe-ethereum
+    environment:
+      - NODE_ENV=production
+      - ETH_RPC_URL=${ETH_RPC_URL}
+      - ETH_PRIVATE_KEY=${ETH_PRIVATE_KEY}
+    restart: unless-stopped
+    networks:
+      - fpbe-net
+    depends_on:
+      - db
+    security_opt:
+      - no-new-privileges:true
+
+  # Bitcoin Microservice (Node.js)
+  bitcoin:
+    build:
+      context: ./services/bitcoin
+      dockerfile: Dockerfile
+    container_name: fpbe-bitcoin
+    environment:
+      - NODE_ENV=production
+      - BTC_API_KEY=${BTC_API_KEY}
+    restart: unless-stopped
+    networks:
+      - fpbe-net
+    depends_on:
+      - db
+    security_opt:
+      - no-new-privileges:true
+
+  # Voice Banking Microservice (Node.js)
+  voice-banking:
+    build:
+      context: ./services/voice-banking
+      dockerfile: Dockerfile
+    container_name: fpbe-voice-banking
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - fpbe-net
+    depends_on:
+      - db
+    security_opt:
+      - no-new-privileges:true
+
+  # Frontend Metro bundler (for React Native development)
+  frontend-dev:
     build:
       context: ./src/web
       dockerfile: Dockerfile
-    container_name: fpbe-frontend
+    container_name: fpbe-frontend-dev
     command: npm start
     volumes:
       - ./src/web:/app
@@ -75,6 +168,24 @@ services:
       - "8081:8081"
     stdin_open: true
     tty: true
+    networks:
+      - fpbe-net
+
+  # (Optional) Frontend production server (e.g., Nginx/Node)
+  # frontend-prod:
+  #   build:
+  #     context: ./src/web
+  #     dockerfile: Dockerfile.prod
+  #   container_name: fpbe-frontend-prod
+  #   ports:
+  #     - "80:80"
+  #   networks:
+  #     - fpbe-net
+  #   restart: unless-stopped
 
 volumes:
   postgres_data:
+
+networks:
+  fpbe-net:
+    driver: bridge
