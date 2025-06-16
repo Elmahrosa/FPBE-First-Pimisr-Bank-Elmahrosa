@@ -1,9 +1,12 @@
-# Dependencies
+# ----------------- Dependencies -----------------
 node_modules/
 vendor/
 .gradle/
+apps/**/node_modules/
+services/**/node_modules/
+packages/**/node_modules/
 
-# Build outputs
+# ----------------- Build outputs -----------------
 target/
 dist/
 build/
@@ -12,8 +15,14 @@ bin/
 *.class
 *.jar
 *.war
+lib/
+artifacts/
+cache/
+typechain/
+contracts/*.local.*
+contracts/*.secret.*
 
-# Python
+# ----------------- Python -----------------
 __pycache__/
 *.py[cod]
 *.so
@@ -25,20 +34,20 @@ venv/
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Environment and Security
+# ----------------- Environment and Security -----------------
 .env
 .env.*
+!.env.example
 *.key
 *.pem
 *.cert
 *.p12
 *.jks
-*.keystore
-secrets.yaml
+*.crets.yaml
 secrets.yml
-credentials.json
+S
 
-# IDE and Editor
+# ----------------- IDE and Editor -----------------
 .idea/
 .vscode/
 *.iml
@@ -53,10 +62,9 @@ credentials.json
 nbproject/
 .vs/
 
-# Testing and Coverage
-coverage/
-.coverage
-htmlcov/
+# ----------------- Testing and Coverage -----------------
+coverage.coverage
+cov/
 .tox/
 nosetests.xml
 coverage.xml
@@ -65,17 +73,16 @@ coverage.xml
 .pytest_cache/
 junit/
 test-output/
+.nyc_output/
+test-results.xml
+results.xml
 
-# Infrastructure
+# ----------------- Infrastructure -----------------
 .terraform/
 *.tfstate
 *.tfstate.*
 *.tfvars
-.terraformrc
-terraform.rc
-
-# Logs and Temporary
-*.log
+.terraformlog
 logs/
 tmp/
 temp/
@@ -85,7 +92,7 @@ temp/
 *.swp
 *~
 
-# OS-specific
+# ----------------- OS-specific -----------------
 .DS_Store
 .DS_Store?
 ._*
@@ -95,35 +102,54 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 
-# Mobile Development
+# ----------------- Mobile Development -----------------
 *.apk
 *.ap_
 *.aab
 *.ipa
 *.dSYM.zip
-*.dSYM
-.gradle/
-local.properties
-*.hprof
-
-# Documentation and Reports
-docs/_build/
-site/
-.docusaurus
-.cache/
-.jekyll-cache/
-.sass-cache/
-
-# Container and Orchestration
+*.dSYM -----------------
 .docker/
 *.tar
 *.tar.gz
 kubeconfig
 .kube/
+postgres_data/
+volumes/
+data/
 
-# Package Management
+# ----------------- Package Management -----------------
 package-lock.json
 yarn.lock
 composer.lock
 Gemfile.lock
 poetry.lock
+pnpm-lock.yaml
+
+# ----------------- Frontend / Web Frameworks -----------------
+src/web/.next/
+src/web/out/
+src/web/.cache/
+src/web/.expo/
+
+# ----------------- Solidity/Smart Contract -----------------
+*.abi
+*.bin
+artifacts/
+broadcast/
+typechain/
+out/
+vyper_cache/
+foundry.toml
+
+# ----------------- Miscellaneous -----------------
+*.tgz
+*.gz
+*.zip
+*.bak
+*.orig
+secret.key
+private.key
+*.sublime-workspace
+*.sublime-project
+*.iml
