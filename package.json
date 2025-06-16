@@ -1,0 +1,17 @@
+{
+  "name": "fpbe-solana-teos",
+  "version": "1.0.0",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "ts-node app.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.96.0",
+    "@solana/spl-token": "^0.4.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2"
+  }
+}
