@@ -341,3 +341,118 @@ For support and inquiries:
 ## 🏦 About FPBE
 
 First PIMISR Bank Elmahrosa (FPBE) is committed to providing innovative financial solutions that bridge traditional banking with cryptocurrency capabilities, ensuring secure, compliant, and accessible services for our global customer base.
+
+# FPBE-First-Pimisr-Bank-Elmahrosa
+
+## 🚀 Getting Started
+
+This guide will help you set up and deploy the application for development and deployment purposes.
+
+---
+
+### Prerequisites
+
+Ensure you have the following installed on your system:
+
+- **Node.js** 18 LTS
+- **Java** 17 LTS
+- **Docker Desktop**
+- **Kubernetes CLI** (`kubectl`)
+- **AWS CLI**
+- **Git**
+
+---
+
+### Development Setup
+
+#### 1. Clone the repository
+
+```bash
+git clone https://github.com/Aymanseif/FPBE-First-Pimisr-Bank-Elmahrosa.git
+cd FPBE-First-Pimisr-Bank-Elmahrosa
+```
+
+#### 2. Install dependencies
+
+##### Backend Services
+
+```bash
+cd src/backend
+./mvnw install
+```
+
+##### Mobile Application
+
+```bash
+cd ../../src/web
+npm install
+```
+
+#### 3. Configure environment
+
+Copy the example environment files to create your local configuration:
+
+```bash
+cp .env.example .env
+cp config/application.yml.example config/application.yml
+```
+
+If there are additional environment files (for backend or web), copy those as needed:
+
+```bash
+cd ../backend
+cp .env.example .env  # If exists
+
+cd ../../web
+cp .env.example .env  # If exists
+```
+
+Edit `.env` and `config/application.yml` as required for your environment.
+
+---
+
+#### 4. Start development environment
+
+##### Start backend services
+
+In the `src/backend` directory:
+
+```bash
+docker-compose up -d
+```
+
+##### Start mobile/web app
+
+In the `src/web` directory:
+
+```bash
+npm run start
+```
+
+---
+
+### Deployment Notes
+
+- Ensure your AWS CLI is configured with the correct credentials (`aws configure`).
+- For Kubernetes deployment, ensure your cluster is accessible and your `kubectl` context is set.
+- For production deployments, adjust environment variables and configuration files accordingly.
+
+---
+
+### Troubleshooting
+
+- If you experience errors, ensure all prerequisites are installed and environment files are correctly configured.
+- Check Docker and Kubernetes are running.
+- For dependency issues, try deleting `node_modules` or `target` and reinstalling.
+
+---
+
+### Contributing
+
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+---
+
+### License
+
+[MIT](LICENSE)
