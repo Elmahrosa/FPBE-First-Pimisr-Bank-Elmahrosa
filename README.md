@@ -151,52 +151,120 @@ graph TD
 - Hardware Security Modules (HSM)
 - Multi-factor Authentication
 
-## 🚀 Getting Started
+## Getting Started with FPBE First Pimisr Bank Elmahrosa
 
-### Prerequisites
+This guide provides instructions to set up and deploy the FPBE mobile banking application for development and production environments.
 
-- Node.js 18 LTS
-- Java 17 LTS
-- Docker Desktop
-- Kubernetes CLI
-- AWS CLI
-- Git
+## Prerequisites
 
-### Development Setup
+Ensure you have the following installed:
+- *Node.js* (v18 LTS): [Download](https://nodejs.org/en/download/)
+- *Java* (JDK 17 LTS): [Download](https://adoptium.net/)
+- *Docker Desktop*: [Download](https://www.docker.com/products/docker-desktop/)
+- *Kubernetes CLI (kubectl)*: [Install](https://kubernetes.io/docs/tasks/tools/)
+- *AWS CLI* (v2): [Install](https://aws.amazon.com/cli/)
+- *Git*: [Download](https://git-scm.com/downloads/)
 
-1. Clone the repository:
+## Development Setup
+
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/fpbe/mobile-banking.git
-cd mobile-banking
-```
-
-2. Install dependencies:
-```bash
-# Backend services
-cd src/backend
-./mvnw install
-
-# Mobile application
-cd src/web
+git clone https://github.com/Aymanseif/FPBE-First-Pimisr-Bank-Elmahrosa.git
+cd FPBE-First-Pimisr-Bank-Elmahrosa
+2. Install Dependencies
+Backend Services
+bash
+cd backend
+./mvnw clean install
+This installs all required Java dependencies using Maven.
+Mobile Application
+bash
+cd ../web
 npm install
-```
+This installs Node.js dependencies for the mobile frontend.
+3. Configure Environment
+Copy and configure environment files:
+bash
+# Backend configuration
+cd backend
+cp src/main/resources/application.yml.example src/main/resources/application.yml
 
-3. Configure environment:
-```bash
-# Copy environment templates
+# Frontend configuration
+cd ../web
 cp .env.example .env
-cp config/application.yml.example config/application.yml
-```
-
-4. Start development environment:
-```bash
-# Start backend services
+Edit the following files with your environment-specific values:
+backend/src/main/resources/application.yml: Update database credentials, API keys, and other service configurations.
+web/.env: Set API endpoints, AWS credentials, and other frontend configurations.
+4. Start Development Environment
+Backend Services
+Run the backend services using Docker Compose:
+bash
+cd backend
 docker-compose up -d
+This starts the backend services (e.g., API server, database) in detached mode.
+Mobile Application
+Run the mobile app in development mode:
+bash
+cd ../web
+npm run dev
+This starts the frontend development server, typically accessible at http://localhost:3000.
+Deployment Setup
+1. Build Docker Images
+Backend
+bash
+cd backend
+docker build -t fpbe-backend:latest .
+Frontend
+bash
+cd ../web
+docker build -t fpbe-frontend:latest .
+2. Push Images to Registry
+Push the built images to your container registry (e.g., AWS ECR):
+bash
+# Authenticate with AWS ECR
+aws ecr get-login-password --region <your-region> | docker login --username AWS --password-stdin <your-ecr-repo-uri>
 
-# Start mobile app
-npm run start
-```
+# Tag and push backend image
+docker tag fpbe-backend:latest <your-ecr-repo-uri>/fpbe-backend:latest
+docker push <your-ecr-repo-uri>/fpbe-backend:latest
 
+# Tag and push frontend image
+docker tag fpbe-frontend:latest <your-ecr-repo-uri>/fpbe-frontend:latest
+docker push <your-ecr-repo-uri>/fpbe-frontend:latest
+Replace <your-region> and <your-ecr-repo-uri> with your AWS region and ECR repository URI.
+3. Deploy to Kubernetes
+Ensure kubectl is configured to connect to your Kubernetes cluster (e.g., EKS).
+Apply Kubernetes manifests:
+bash
+cd kubernetes
+kubectl apply -f backend-deployment.yml
+kubectl apply -f frontend-deployment.yml
+kubectl apply -f backend-service.yml
+kubectl apply -f frontend-service.yml
+Ensure the kubernetes/ directory contains the necessary YAML files for deployments and services. Example files:
+backend-deployment.yml: Defines the backend deployment with replicas and container specs.
+frontend-deployment.yml: Defines the frontend deployment.
+backend-service.yml: Exposes the backend API.
+frontend-service.yml: Exposes the frontend application.
+4. Verify Deployment
+Check the status of your pods and services:
+bash
+kubectl get pods
+kubectl get services
+Access the application via the external URL or LoadBalancer endpoint provided by the frontend service.
+Additional Notes
+Ensure AWS credentials are configured for ECR and EKS access.
+Update application.yml and .env with production-ready values (e.g., secure database credentials, API keys).
+For HTTPS, configure an Ingress controller or use AWS ALB with SSL certificates.
+Monitor logs using:
+bash
+kubectl logs -l app=fpbe-backend
+kubectl logs -l app=fpbe-frontend
+Troubleshooting
+Docker build failures: Verify Dockerfile paths and dependencies.
+Kubernetes errors: Check pod logs and ensure correct AWS IAM roles.
+Environment issues: Validate .env and application.yml configurations.
+For further assistance, create an issue in the GitHub repository.
 ## 📚 Documentation
 
 - [Backend Services](src/backend/README.md)
