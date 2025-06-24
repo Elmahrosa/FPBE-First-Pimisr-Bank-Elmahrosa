@@ -2,7 +2,13 @@ import express from "express";
 import { Queue, Worker } from "bullmq";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
-import { FPBE());
+import { FPBEEvent, RiskAlert, explainAlert } from "@fpbe-ai-risk-guardian/shared";
+import Redis from "ioredis";
+
+const app = express();
+const port = 4302;
+
+app.use(express.json());
 const redis = new Redis();
 
 // Streaming event queue (for fraud analysis)
@@ -13,7 +19,14 @@ const wss = new WebSocketServer({ server });
 
 const adminClients: Set<any> = new Set();
 
-wss.on("connection", (ws: "alert", data: alert });
+wss.on("connection", (ws) => {
+  adminClients.add(ws);
+  ws.on("close", () => adminClients.delete(ws));
+});
+
+// Forward alerts to admin dashboard
+function sendAlertToAdmins(alert: RiskAlert) {
+  const msg = JSON.stringify({ type: "alert", data: alert });
   adminClients.forEach((ws) => ws.readyState === 1 && ws.send(msg));
 }
 
@@ -42,14 +55,7 @@ app.post("/api/event", async (req, res) => {
   res.json({ status: "queued" });
 });
 
-// REST endpoint for admin to fetch unresolved alerts
-app.get("/api/alerts", async (_, res) => {
-  const alerts = await redis.lrange("alerts", 0, -1);
-  res.json(alerts.map((a) => JSON.parse(a)));
-});
-
-// Worker: process events, run AI, store/send alerts
-const eventWorker = new Worker<FPBEEvent>(
+// REST endpoint>(
   "events",
   async (job) => {
     const alert = await runAIInference(job.data);
@@ -61,5 +67,6 @@ const eventWorker = new Worker<FPBEEvent>(
   { connection: redis }
 );
 
-server.listen(port running at http://localhost:${port}`);
+server.listen(port, () => {
+  console.log(`Risk backend running at http://localhost:${port}`);
 });
