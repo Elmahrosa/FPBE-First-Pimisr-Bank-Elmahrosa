@@ -1,0 +1,22 @@
+{
+  "name": "@fpbe-ai-risk-guardian/backend",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true,
+  "dependencies": {
+    "@fpbe-ai-risk-guardian/shared": "*",
+    "express": "^4.19.0",
+    "ws": "^8.16.0",
+    "bullmq": "^4.15.0",
+    "ioredis": "^5.4.1",
+    "child_process": "^1.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "scripts": {
+    "dev": "ts-node-dev --respawn index.ts",
+    "build": "tsc"
+  }
+}
