@@ -2,6 +2,3 @@ Flask==2.3.3
 Flask-Cors==4.0.0
 requests==2.31.0
 python-dotenv==1.0.1
-git add requirements.txt
-git commit -m "fix: corrected requests version in requirements"
-git push origin main
