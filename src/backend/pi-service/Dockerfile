@@ -10,18 +10,20 @@ RUN addgroup -g 1000 node && \
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
 
-# Copy package files and install dependencies
+# Copy package files
 COPY --chown=node:node package*.json ./
+
+# Install production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy source and configs
+# Copy TypeScript source and configs
 COPY --chown=node:node tsconfig*.json ./
 COPY --chown=node:node src/ ./src/
 
-# Build TypeScript code
+# Build the TypeScript app
 RUN npm run build
 
-# Stage 2: Production
+# Stage 2: Runtime
 FROM node:18-alpine
 
 ENV NODE_ENV=production
@@ -33,26 +35,26 @@ WORKDIR /usr/src/app
 RUN addgroup -g 1000 node && \
     adduser -u 1000 -G node -s /bin/sh -D node
 
-# Install tini and wget
+# Install tini for PID 1 handling and wget for healthcheck
 RUN apk add --no-cache tini wget
 
-# Copy built output and dependencies
+# Copy built files and dependencies
 COPY --from=builder --chown=node:node /usr/src/app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /usr/src/app/dist ./dist
 COPY --from=builder --chown=node:node /usr/src/app/package*.json ./
 
-# Healthcheck
+# Healthcheck endpoint (adjust if different)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:${PORT}/health || exit 1
 
-# Expose port
+# Expose the port your app runs on
 EXPOSE ${PORT}
 
-# Use tini
+# Use tini as the init system
 ENTRYPOINT ["/sbin/tini", "--"]
 
-# Use non-root user
+# Run as non-root user
 USER node
 
-# Run the app
+# Start the app
 CMD ["node", "dist/index.js"]
