@@ -18,8 +18,8 @@
 
     <properties>
         <java.version>17</java.version>
-        <spring-cloud.version>4.0.0</spring-cloud.version>
-        <spring-kafka.version>3.0.0</spring-kafka.version>
+        <spring-cloud.version>4.3.0</spring-cloud.version>
+        <spring-kafka.version>3.3.0</spring-kafka.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.5.0</version>
+            <version>42.5.5</version>
             <scope>runtime</scope>
         </dependency>
 
