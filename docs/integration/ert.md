@@ -22,7 +22,9 @@ Unlike speculative tokens, $ERT is designed for **stability, trust, and utility*
 ## 🔐 Wallets & Pool Links
 
 - **$ERT Mint Wallet**: [`DHJkzU4yVpBMtDGs78hmw5KSYvfpQ2Jfqd8j7y8fSZ9m`](https://solscan.io/token/DHJkzU4yVpBMtDGs78hmw5KSYvfpQ2Jfqd8j7y8fSZ9m)  
-- **TEOS Mint Wallet**: [`8MxKew6Zn8Ytw74MfftdWuChKBiNe8yiRzm2EuKybMWA`](https://solscan.io/account/8MxKew6Zn8Ytw74MfftdWuChKBiNe8yiRzm2EuKybMWA)  
+- **TEOS Mint Wallet**: [`AhXBUQmbhv9dNoZCiMYmXF4Gyi1cjQthWHFhTL2CJaSo`](https://solscan.io/token/AhXBUQmbhv9dNoZCiMYmXF4Gyi1cjQthWHFhTL2CJaSo) 
+ - **TUTTEOS Mint Wallet**: [`Gvce3ukeWYDprBeVtYrqUVdgMcRGADWSkX5vCKMQG3b5`]
+(https://solscan.io/token/Gvce3ukeWYDprBeVtYrqUVdgMcRGADWSkX5vCKMQG3b5) 
 - **Locked Pool**: [`Dexlab`](https://app.dexlab.space/pools/842ViJHy1o3omwLxaVoP4J6EaWPjn2R4uwHh1238FxVB/manage-liquidity)  
 - **ERT Portal**: [`ert.teosegypt.com`](https://ert.teosegypt.com)
 
