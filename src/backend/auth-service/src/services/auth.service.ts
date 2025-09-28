@@ -5,7 +5,7 @@ import winston from 'winston'; // ^3.8.2
 import { DeviceTrust } from '@security/device-trust'; // ^2.1.0
 
 // Internal imports
-import { User, KYCStatus, AuthMethod } from '../models/user.model';
+import { User, KYCStatus, AuthMethod, IUserProfile, IDeviceTrust, IDeviceFingerprint } from '../models/user.model';
 import { JWTService, TokenType } from './jwt.service';
 import { BiometricService, BiometricType } from './biometric.service';
 
@@ -71,7 +71,10 @@ export class AuthService {
   ) {
     this.logger = winston.createLogger({
       level: 'info',
-      format: winston.format.json(),
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+      ),
       transports: [
         new winston.transports.File({ filename: 'auth-security.log' }),
         new winston.transports.Console()
@@ -84,26 +87,25 @@ export class AuthService {
   public async login(credentials: ILoginCredentials): Promise<IAuthResponse> {
     try {
       // Find user and validate existence
-      const user = await this.userModel.findOne({ email: credentials.email });
+      const user = await this.userModel.findOne({ email: credentials.email }).select('+passwordHash +pin +biometricData +lockedUntil +loginAttempts');
       if (!user) {
         throw new Error('Invalid credentials');
       }
 
       // Check account lock status
       if (user.lockedUntil && user.lockedUntil > new Date()) {
-        throw new Error(`Account locked until ${user.lockedUntil}`);
+        throw new Error(`Account locked until ${user.lockedUntil.toISOString()}`);
       }
 
       // Validate device trust and calculate risk score
-      const deviceTrustScore = await this.deviceTrust.assessDevice(
-        credentials.deviceFingerprint
-      );
+      const deviceTrustScore = await this.deviceTrust.assessDevice(credentials.deviceFingerprint);
 
       if (deviceTrustScore.trustScore < 0.7) {
         this.logger.warn('Suspicious device detected', {
           userId: user.id,
           deviceId: credentials.deviceId,
-          trustScore: deviceTrustScore
+          trustScore: deviceTrustScore.trustScore,
+          riskLevel: deviceTrustScore.riskLevel
         });
         throw new Error('Device trust validation failed');
       }
@@ -112,7 +114,7 @@ export class AuthService {
       const isValidPassword = await user.validatePassword(credentials.password);
       if (!isValidPassword) {
         await user.incrementLoginAttempts();
-        
+
         this.logger.warn('Failed login attempt', {
           userId: user.id,
           deviceId: credentials.deviceId,
@@ -131,8 +133,10 @@ export class AuthService {
       // Reset login attempts on successful login
       await user.resetLoginAttempts();
 
-      // Update device trust information
-      await user.updateDeviceTrust(credentials.deviceId, deviceTrustScore);
+      // Update device trust information (assumes user model has this method)
+      if (typeof user.updateDeviceTrust === 'function') {
+        await user.updateDeviceTrust(credentials.deviceId, deviceTrustScore);
+      }
 
       // Generate tokens
       const tokens = await this.jwtService.generateTokens(
@@ -154,7 +158,8 @@ export class AuthService {
       this.logger.info('Successful authentication', {
         userId: user.id,
         deviceId: credentials.deviceId,
-        trustScore: deviceTrustScore.trustScore
+        trustScore: deviceTrustScore.trustScore,
+        riskLevel: deviceTrustScore.riskLevel
       });
 
       return {
@@ -163,7 +168,7 @@ export class AuthService {
         deviceTrust: deviceTrustScore,
         sessionAnalytics
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Authentication error', {
         error: error.message,
         email: credentials.email,
@@ -180,9 +185,14 @@ export class AuthService {
   ): Promise<IAuthResponse> {
     try {
       // Find user and validate existence
-      const user = await this.userModel.findById(userId);
+      const user = await this.userModel.findById(userId).select('+biometricData +lockedUntil +loginAttempts');
       if (!user) {
-        throw new Error('User not found');
+        throw new Error('User  not found');
+      }
+
+      // Check account lock status
+      if (user.lockedUntil && user.lockedUntil > new Date()) {
+        throw new Error(`Account locked until ${user.lockedUntil.toISOString()}`);
       }
 
       // Verify biometric data
@@ -198,13 +208,29 @@ export class AuthService {
           deviceId,
           biometricType: biometricData.type
         });
+        await user.incrementLoginAttempts();
+
+        if (user.loginAttempts >= this.MAX_LOGIN_ATTEMPTS) {
+          user.lockedUntil = new Date(Date.now() + this.LOCKOUT_DURATION);
+          await user.save();
+          throw new Error('Account locked due to multiple failed attempts');
+        }
+
         throw new Error('Biometric verification failed');
       }
+
+      // Reset login attempts on successful biometric login
+      await user.resetLoginAttempts();
 
       // Calculate device trust score
       const deviceTrustScore = await this.deviceTrust.assessDevice({
         uniqueId: deviceId,
-        biometricStrength: biometricData.qualityScore
+        biometricStrength: biometricData.qualityScore,
+        platform: 'unknown',
+        osVersion: 'unknown',
+        appVersion: 'unknown',
+        deviceModel: 'unknown',
+        securityLevel: 'unknown'
       });
 
       // Generate tokens
@@ -237,7 +263,7 @@ export class AuthService {
         deviceTrust: deviceTrustScore,
         sessionAnalytics
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Biometric authentication error', {
         error: error.message,
         userId,
@@ -246,4 +272,4 @@ export class AuthService {
       throw error;
     }
   }
-}
+  }
