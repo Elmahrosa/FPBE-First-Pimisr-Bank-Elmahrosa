@@ -1,7 +1,7 @@
 // External dependencies
 import jwt from 'jsonwebtoken'; // ^9.0.0
 import crypto from 'crypto'; // built-in
-import { RedisClient } from 'redis'; // ^4.6.0
+import { RedisClientType } from 'redis'; // ^4.6.0
 
 // Internal imports
 import { authConfig } from './config/auth.config';
@@ -24,6 +24,7 @@ interface ITokenPayload {
   iss: string;
   jti: string;
   keyId: string;
+  type: TokenType;
 }
 
 interface ITokenResponse {
@@ -43,13 +44,14 @@ interface IKeyPair {
 }
 
 class JWTService {
-  private readonly tokenCache: RedisClient;
+  private readonly tokenCache: RedisClientType;
   private currentKeyPair: IKeyPair;
   private readonly TOKEN_BLACKLIST_PREFIX = 'token:blacklist:';
   private readonly TOKEN_METADATA_PREFIX = 'token:metadata:';
   private readonly KEY_ROTATION_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+  private keyRotationTimer?: NodeJS.Timeout;
 
-  constructor(redisClient: RedisClient) {
+  constructor(redisClient: RedisClientType) {
     this.tokenCache = redisClient;
     this.currentKeyPair = this.generateKeyPair();
     this.initializeKeyRotation();
@@ -77,8 +79,10 @@ class JWTService {
    * Initializes automatic key rotation
    */
   private initializeKeyRotation(): void {
-    setInterval(() => {
-      this.rotateKeys();
+    this.keyRotationTimer = setInterval(() => {
+      this.rotateKeys().catch(err => {
+        console.error('Key rotation error:', err);
+      });
     }, this.KEY_ROTATION_INTERVAL);
   }
 
@@ -90,12 +94,17 @@ class JWTService {
     const oldKeyPair = this.currentKeyPair;
     this.currentKeyPair = newKeyPair;
 
-    // Store old key temporarily for token validation
+    // Store old key temporarily for token validation (1 hour)
     await this.tokenCache.set(
       `jwt:key:${oldKeyPair.id}`,
-      JSON.stringify(oldKeyPair),
-      'EX',
-      3600 // Keep old key for 1 hour
+      JSON.stringify({
+        id: oldKeyPair.id,
+        publicKey: oldKeyPair.publicKey,
+        createdAt: oldKeyPair.createdAt.toISOString()
+      }),
+      {
+        EX: 3600
+      }
     );
   }
 
@@ -107,9 +116,8 @@ class JWTService {
     deviceId: string,
     deviceFingerprint: string
   ): Promise<ITokenResponse> {
-    // Validate KYC status
     if (user.kycStatus === KYCStatus.REJECTED) {
-      throw new Error('User KYC validation failed');
+      throw new Error('User  KYC validation failed');
     }
 
     const tokenId = crypto.randomBytes(32).toString('hex');
@@ -123,7 +131,6 @@ class JWTService {
       keyId: this.currentKeyPair.id
     };
 
-    // Generate access token
     const accessToken = jwt.sign(
       { ...basePayload, type: TokenType.ACCESS },
       this.currentKeyPair.privateKey,
@@ -135,7 +142,6 @@ class JWTService {
       }
     );
 
-    // Generate refresh token
     const refreshToken = jwt.sign(
       { ...basePayload, type: TokenType.REFRESH },
       this.currentKeyPair.privateKey,
@@ -147,7 +153,6 @@ class JWTService {
       }
     );
 
-    // Store token metadata
     await this.storeTokenMetadata(tokenId, user.id, deviceId);
 
     return {
@@ -169,25 +174,26 @@ class JWTService {
     tokenType: TokenType
   ): Promise<ITokenPayload> {
     try {
-      // Check token blacklist
       const isBlacklisted = await this.isTokenBlacklisted(token);
       if (isBlacklisted) {
         throw new Error('Token has been revoked');
       }
 
-      // Decode token without verification to get key ID
       const decoded = jwt.decode(token, { complete: true });
       if (!decoded || typeof decoded === 'string') {
         throw new Error('Invalid token format');
       }
 
-      // Get the correct key for verification
-      const keyPair = await this.getKeyPair(decoded.header.kid);
+      const keyId = decoded.header.kid || decoded.header.keyId || decoded.header.kid;
+      if (!keyId) {
+        throw new Error('Token missing key ID');
+      }
+
+      const keyPair = await this.getKeyPair(keyId);
       if (!keyPair) {
         throw new Error('Invalid token key');
       }
 
-      // Verify token
       const verified = jwt.verify(token, keyPair.publicKey, {
         algorithms: ['RS256'],
         issuer: authConfig.jwt.issuer,
@@ -195,18 +201,16 @@ class JWTService {
         clockTolerance: authConfig.jwt.clockTolerance
       }) as ITokenPayload;
 
-      // Validate device binding
       if (verified.deviceId !== deviceId) {
         throw new Error('Invalid device binding');
       }
 
-      // Validate token type
       if (verified.type !== tokenType) {
         throw new Error('Invalid token type');
       }
 
       return verified;
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new Error('Token has expired');
       }
@@ -231,8 +235,9 @@ class JWTService {
     await this.tokenCache.set(
       `${this.TOKEN_METADATA_PREFIX}${tokenId}`,
       JSON.stringify(metadata),
-      'EX',
-      this.getExpiryInSeconds(authConfig.jwt.refreshTokenExpiry)
+      {
+        EX: this.getExpiryInSeconds(authConfig.jwt.refreshTokenExpiry)
+      }
     );
   }
 
@@ -255,7 +260,15 @@ class JWTService {
     }
 
     const storedKey = await this.tokenCache.get(`jwt:key:${keyId}`);
-    return storedKey ? JSON.parse(storedKey) : null;
+    if (!storedKey) return null;
+
+    const parsed = JSON.parse(storedKey);
+    return {
+      id: parsed.id,
+      publicKey: parsed.publicKey,
+      privateKey: '', // privateKey not stored for old keys
+      createdAt: new Date(parsed.createdAt)
+    };
   }
 
   /**
@@ -263,7 +276,7 @@ class JWTService {
    */
   private getExpiryInSeconds(expiry: string): number {
     const unit = expiry.slice(-1);
-    const value = parseInt(expiry.slice(0, -1));
+    const value = parseInt(expiry.slice(0, -1), 10);
 
     switch (unit) {
       case 'm':
@@ -286,11 +299,20 @@ class JWTService {
       throw new Error('Invalid token format');
     }
 
+    const exp = (decoded.payload as any).exp;
+    const ttl = exp ? exp - Math.floor(Date.now() / 1000) : this.getExpiryInSeconds(authConfig.jwt.refreshTokenExpiry);
+
+    if (ttl <= 0) {
+      // Token already expired, no need to blacklist
+      return;
+    }
+
     await this.tokenCache.set(
       `${this.TOKEN_BLACKLIST_PREFIX}${token}`,
       '1',
-      'EX',
-      this.getExpiryInSeconds(authConfig.jwt.refreshTokenExpiry)
+      {
+        EX: ttl
+      }
     );
   }
 }
