@@ -457,3 +457,43 @@ Pull requests are welcome! For major changes, please open an issue first to disc
 ### License
 
 [MIT](LICENSE)
+# 🟣 First Pi Misr Bank Elmahrosa (FPBE)
+
+> _Chapter LVIII — The Bank of the People_
+
+Egypt’s civic banking gateway for Pi pioneers and contributors. Built on the TEOS ecosystem, FPBE transforms Pi login and chat into a full banking experience—powered by $ERT, ritual-grade quests, and sovereign vaults.
+
+---
+
+## 🔰 Features
+
+| Module      | Description                                                                 |
+|-------------|-----------------------------------------------------------------------------|
+| 🧭 Dashboard | View wallet balances, transaction history, and civic score                 |
+| 💼 Wallet    | Manage Pi and $ERT tokens with QR-based transfers                          |
+| 🧩 Quests    | Complete civic actions to earn ERT and unlock badges                       |
+| 🏛️ Vaults    | Stake ERT for yield, contributor status, and seasonal rewards              |
+| 💬 Chat      | Access support and coordinate with fellow contributors                     |
+
+---
+
+## 🪙 Token Layers
+
+| Token   | Function                              |
+|---------|----------------------------------------|
+| $ERT    | Stable payment layer for contributors |
+| $TEOS   | Legacy governance & energy layer      |
+| $TUT    | Cultural badge fuel                   |
+| $TGR    | Real-world asset (gold) layer         |
+| $DOLPHIN| Environmental & social impact layer   |
+
+---
+
+## 🛠️ Setup Instructions
+
+```bash
+git clone https://github.com/Elmahrosa/FPBE-First-Pimisr-Bank-Elmahrosa
+npm install
+# Add .env with Supabase, Pi login, and ERT mint keys
+npm run dev
+
