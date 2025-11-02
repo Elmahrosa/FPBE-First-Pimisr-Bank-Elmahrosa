@@ -1,0 +1,11 @@
+fpbe/
+├── custody/
+│   ├── vault_registry.json
+│   ├── delivery_requests.json
+│   └── certification_log.md
+├── treasury/
+│   ├── contribution_tracker.js
+│   └── impact_visualizer.js
+├── verification/
+│   ├── badge_check.js
+│   └── petition_log.md
