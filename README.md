@@ -329,7 +329,22 @@ fpbe-mobile-banking/
 - Real-time alerting
 
 ## 📄 License
-<img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/c8ac1f54-dc50-4e58-98fc-0a4f6cf42c18" />
+## 🔐 Dual Licensing
+
+This module is governed by Elmahrosa’s dual licensing model:
+
+- **Community License (MIT)**  
+  Free for civic contributors and humanitarian use.  
+  → [LICENSE-Community.md](./LICENSE-Community.md)
+
+- **Enterprise License**  
+  Required for institutions needing custody enforcement, validator fee logic, and treasury audit guarantees.  
+  → [LICENSE-Enterprise.md](./LICENSE-Enterprise.md)
+
+All enterprise actions are logged in `chapter_resurrection.md`, tracked in `vault_registry.json`, and verified via badge logic.
+
+For licensing inquiries, contact Elmahrosa International — Coordinating Authority.  
+GitHub: [https://github.com/Elmahrosa](https://github.com/Elmahrosa)
 
 This project is licensed under the [MIT License](LICENSE)
 
