@@ -19,3 +19,19 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+## 🔐 Dual Licensing
+
+This module is governed by Elmahrosa’s dual licensing model:
+
+- **Community License (MIT)**  
+  Free for civic contributors and humanitarian use.  
+  → [LICENSE-Community.md](./LICENSE-Community.md)
+
+- **Enterprise License**  
+  Required for institutions needing custody enforcement, validator fee logic, and treasury audit guarantees.  
+  → [LICENSE-Enterprise.md](./LICENSE-Enterprise.md)
+
+All enterprise actions are logged in `chapter_resurrection.md`, tracked in `vault_registry.json`, and verified via badge logic.
+
+For licensing inquiries, contact Elmahrosa International — Coordinating Authority.  
+GitHub: [https://github.com/Elmahrosa](https://github.com/Elmahrosa)
