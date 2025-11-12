@@ -329,16 +329,14 @@ fpbe-mobile-banking/
 - Real-time alerting
 
 ## 📄 License
+<img width="1024" height="768" alt="image" src="https://github.com/user-attachments/assets/c8ac1f54-dc50-4e58-98fc-0a4f6cf42c18" />
 
 This project is licensed under the [MIT License](LICENSE)
 
 ## 🆘 Support
 
 For support and inquiries:
-- Technical Support: [support@fpbe.com](mailto:support@fpbe.com)
-- Security Issues: [security@fpbe.com](mailto:security@fpbe.com)
-- Documentation: [docs.fpbe.com](https://docs.fpbe.com)
-
+GitHub: [https://github.com/Elmahrosa](https://github.com/Elmahrosa)
 ## 🏦 About FPBE
 
 First PIMISR Bank Elmahrosa (FPBE) is committed to providing innovative financial solutions that bridge traditional banking with cryptocurrency capabilities, ensuring secure, compliant, and accessible services for our global customer base.
