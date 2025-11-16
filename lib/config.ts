@@ -2,7 +2,9 @@ export const CONFIG = {
   piNetwork: {
     appId: "firstpimisrbanke1502",
     pinetSubdomain: "fpbe5523", // Added PiNet subdomain from Pi Developer Portal
-    domain: "https://fpbe5523.pinet.com", // Updated domain to use fpbe5523.pinet.com
+    domain: process.env.NEXT_PUBLIC_DOMAIN || "https://teosegypt.com",
+    vercelUrl: "https://fpbe-elmahrosa1.vercel.app",
+    pinetUrl: "https://fpbe5523.pinet.com",
     validationKey: "d2c87a3ff9eb731e0767355e2856fa539570345a117300de7356b1a19e54922d42a83e6fe7b6cd8af5cdf30b2f6ea09ed1d99852ef5610469534123922317484",
     sandboxMode: false,
     fullscreenSupported: true, // Enabled fullscreen support

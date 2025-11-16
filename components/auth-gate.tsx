@@ -5,13 +5,18 @@ import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { PiSDK, ACCESS_FEE, INVITATION_CODE } from "@/lib/pi-sdk"
+import { PiSDK, ACCESS_FEE, INVITATION_CODE, ADMIN_USERNAME, ADMIN_WALLET } from "@/lib/pi-sdk"
 import { CONFIG } from "@/lib/config"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, hasPaid, login, markAsPaid } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showFounderLogin, setShowFounderLogin] = useState(false)
+  const [founderUsername, setFounderUsername] = useState("")
+  const [founderWallet, setFounderWallet] = useState("")
   const [petitionSigned, setPetitionSigned] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('petitionConfirmed') === 'true'
@@ -22,6 +27,20 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const handleConfirmPetition = () => {
     localStorage.setItem('petitionConfirmed', 'true')
     setPetitionSigned(true)
+  }
+
+  const handleFounderLogin = async () => {
+    setIsLoading(true)
+    setError("")
+    try {
+      console.log("[v0] Founder login attempt")
+      await login(founderUsername || ADMIN_USERNAME, founderWallet || ADMIN_WALLET)
+    } catch (err: any) {
+      console.error("[v0] Founder login failed:", err)
+      setError(err?.message || "Login failed")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!petitionSigned) {
@@ -86,36 +105,118 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="space-y-4">
-            <Button
-              onClick={async () => {
-                setIsLoading(true)
-                setError("")
-                try {
-                  await login()
-                } catch (err) {
-                  setError("Failed to authenticate with Pi Network")
-                } finally {
-                  setIsLoading(false)
-                }
-              }}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-[#B8860B] to-[#DAA520] hover:from-[#DAA520] hover:to-[#FFD700] text-white"
-              size="lg"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Connecting...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">π</span>
-                  Sign in with Pi Network
-                </div>
-              )}
-            </Button>
+            {!showFounderLogin ? (
+              <>
+                <Button
+                  onClick={async () => {
+                    setIsLoading(true)
+                    setError("")
+                    try {
+                      console.log("[v0] Sign in button clicked")
+                      await login()
+                    } catch (err: any) {
+                      console.error("[v0] Authentication failed:", err)
+                      const errorMessage = err?.message || "Failed to authenticate with Pi Network"
+                      if (errorMessage.includes("Pi SDK not available")) {
+                        setError("Please open this app in Pi Browser to sign in")
+                      } else {
+                        setError(errorMessage)
+                      }
+                    } finally {
+                      setIsLoading(false)
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#B8860B] to-[#DAA520] hover:from-[#DAA520] hover:to-[#FFD700] text-white"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Connecting...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">π</span>
+                      Sign in with Pi Network
+                    </div>
+                  )}
+                </Button>
 
-            {error && <p className="text-sm text-destructive text-center">{error}</p>}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => setShowFounderLogin(true)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Founder Login
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-[#B8860B]/10 rounded-lg p-4">
+                  <h3 className="font-semibold text-sm mb-3 text-[#B8860B]">Founder Access</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="username">Username</Label>
+                      <Input
+                        id="username"
+                        placeholder={ADMIN_USERNAME}
+                        value={founderUsername}
+                        onChange={(e) => setFounderUsername(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="wallet">Wallet Address</Label>
+                      <Input
+                        id="wallet"
+                        placeholder={ADMIN_WALLET}
+                        value={founderWallet}
+                        onChange={(e) => setFounderWallet(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleFounderLogin}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#B8860B] to-[#DAA520] hover:from-[#DAA520] hover:to-[#FFD700] text-white"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Logging in...
+                    </div>
+                  ) : (
+                    "Login as Founder"
+                  )}
+                </Button>
+
+                <Button
+                  onClick={() => setShowFounderLogin(false)}
+                  variant="ghost"
+                  className="w-full"
+                >
+                  Back to Pi Login
+                </Button>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-600 text-center">{error}</p>
+              </div>
+            )}
 
             <p className="text-xs text-center text-muted-foreground mt-4">
               New to Pi Network?{" "}
