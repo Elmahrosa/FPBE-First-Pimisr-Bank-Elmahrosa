@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated theme to gold/Egyptian civic colors for FPBE official bank */
+  /* Enhanced Egyptian theme with pyramid gold colors */
   --background: oklch(0.99 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
@@ -122,5 +122,53 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Enhanced mobile-friendly Egyptian background pattern */
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(184, 134, 11, 0.03) 1px, transparent 1px),
+      radial-gradient(circle at 80% 80%, rgba(218, 165, 32, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    /* Fixed mobile scrolling and viewport height */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+  }
+  
+  /* Added mobile viewport fix */
+  html {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Added pyramid decorative element class */
+.pyramid-pattern {
+  position: relative;
+}
+
+.pyramid-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, transparent 50%, rgba(184, 134, 11, 0.05) 50%);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+/* Added custom breakpoint for extra small screens */
+@media (min-width: 475px) {
+  .xs\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .xs\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+}
+
+/* Ensure mobile cards don't overflow */
+@layer utilities {
+  .break-anywhere {
+    overflow-wrap: anywhere;
   }
 }

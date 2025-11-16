@@ -8,15 +8,24 @@ import Script from "next/script"
 
 export const metadata: Metadata = {
   title: "Made with App Studio",
-  description: "First Pimisr Bank Elmahrosa - Official Pi Network Bank",
+  description: "FPBE - First Pimisr Bank Elmahrosa | Official Pi Network Bank | TEOS Egypt",
+  metadataBase: new URL("https://bank.teosegypt.com"),
   viewport: {
     width: "device-width",
     initialScale: 1,
     maximumScale: 1,
     userScalable: false,
   },
-  themeColor: "#1a1a1a",
+  themeColor: "#D4AF37",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "FPBE - First Pimisr Bank Elmahrosa",
+    description: "Official Pi Network Bank - TEOS Egypt - Alexandria Land Project",
+    url: "https://bank.teosegypt.com",
+    siteName: "FPBE Bank",
+    locale: "en_EG",
+    type: "website",
+  },
     generator: 'v0.app'
 }
 

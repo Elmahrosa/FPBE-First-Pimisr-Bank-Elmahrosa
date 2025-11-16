@@ -12,6 +12,7 @@ import { TransferView } from "@/components/transfer-view"
 import { ProfileView } from "@/components/profile-view"
 import { LandView } from "@/components/land-view"
 import { AiChatSupport } from "@/components/ai-chat-support"
+import { VoiceCommandButton } from "@/components/voice-command-button"
 import { DataStore } from "@/lib/store"
 import { Bell, MessageCircle } from 'lucide-react'
 import { CONFIG } from "@/lib/config"
@@ -27,6 +28,23 @@ export default function HomePage() {
 
   const handleNotifications = () => {
     alert("Notifications - No new notifications")
+  }
+
+  const handleVoiceCommand = (action: string, details: string) => {
+    console.log('[v0] Voice command:', action, details)
+    
+    if (action === 'Transfer Dana') {
+      setActiveTab('transfer')
+    } else if (action === 'Cek Saldo') {
+      setActiveTab('home')
+    } else if (action === 'Lihat Riwayat') {
+      setActiveTab('home')
+      setTimeout(() => {
+        document.getElementById('transactions-list')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    } else if (action === 'Tukar Token') {
+      setActiveTab('more')
+    }
   }
 
   const userData = user ? DataStore.getUserData(user.username) : null
@@ -51,6 +69,7 @@ export default function HomePage() {
               <p className="text-xs opacity-80 mt-1">Official Pi Bank • Alexandria 110 Acres</p>
             </div>
             <div className="flex gap-2">
+              <VoiceCommandButton onCommand={handleVoiceCommand} />
               <button
                 onClick={handleSupport}
                 className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center hover:bg-[#1ebe5d] transition-colors"
@@ -92,7 +111,9 @@ export default function HomePage() {
                   }
                 }}
               />
-              <TransactionsList />
+              <div id="transactions-list">
+                <TransactionsList />
+              </div>
             </>
           )}
           {activeTab === "cards" && <CardsView />}
