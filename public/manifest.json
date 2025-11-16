@@ -1,0 +1,22 @@
+{
+  "name": "FPBE - First Pimisr Bank Elmahrosa",
+  "short_name": "FPBE Bank",
+  "description": "Official Pi Network Bank - TEOS Egypt",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#D4AF37",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/placeholder-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/placeholder-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
